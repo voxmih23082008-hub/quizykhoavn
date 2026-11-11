@@ -1,0 +1,2681 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Y Khoa - Nền tảng Ôn Thi & Luyện Đề Y Khoa Chuyên Nghiệp (Cloud Real-time)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                        },
+                        accent: {
+                            50: '#faf5ff',
+                            100: '#f3e8ff',
+                            500: '#a855f7',
+                            600: '#9333ea',
+                            700: '#7e22ce',
+                        },
+                        medical: '#0284c7'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDK (Compat v9) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .purple-glow {
+            box-shadow: 0 4px 20px -2px rgba(147, 51, 234, 0.15);
+        }
+        .card-hover {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased selection:bg-purple-200 selection:text-purple-900">
+
+    <!-- APP CONTAINER -->
+    <div id="app" class="flex-grow flex flex-col">
+        <!-- Top Navigation -->
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <!-- Logo & Brand -->
+                    <div class="flex items-center space-x-3 cursor-pointer" onclick="app.navigate('home')">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-md shadow-emerald-200">
+                            <i class="fa-solid fa-user-doctor text-xl"></i>
+                        </div>
+                        <div>
+                            <span class="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-700 bg-clip-text text-transparent">Quiz Y Khoa</span>
+                            <span class="hidden sm:inline-block ml-2 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">v2.5 Cloud Sync</span>
+                        </div>
+                    </div>
+
+                    <!-- Search Quick Link -->
+                    <div class="hidden md:flex flex-1 max-w-md mx-8">
+                        <div class="relative w-full">
+                            <input type="text" id="globalNavSearch" onkeyup="app.handleSearchInput(this.value)" placeholder="Tìm kiếm môn học, chương, câu hỏi Y Khoa..." class="w-full pl-10 pr-10 py-2 text-sm bg-slate-100 border border-transparent rounded-full focus:bg-white focus:border-emerald-500 focus:outline-none transition-all">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-2.5 text-slate-400 text-sm"></i>
+                        </div>
+                    </div>
+
+                    <!-- Right Navigation Actions -->
+                    <div class="flex items-center space-x-3" id="navUserActions">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main id="mainContent" class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- Dynamic Content Injected Here -->
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white border-t border-slate-200 py-8 mt-12 text-sm">
+            <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <div class="flex items-center space-x-2 text-slate-600 font-medium">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                        <i class="fa-solid fa-heart-pulse"></i>
+                    </div>
+                    <span>Quiz Y Khoa &copy; 2026 - Đồng hành cùng Sinh viên Y toàn quốc.</span>
+                </div>
+                <div class="flex flex-wrap items-center justify-center gap-3">
+                    <button onclick="app.showProModal()" class="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 text-emerald-800 text-xs font-bold rounded-xl transition flex items-center space-x-2 shadow-sm group">
+                        <i class="fa-solid fa-crown text-amber-500 group-hover:scale-110 transition-transform"></i>
+                        <span>Bảng giá Pro</span>
+                    </button>
+                    <button onclick="app.navigate('home')" class="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 text-emerald-800 text-xs font-bold rounded-xl transition flex items-center space-x-2 shadow-sm group">
+                        <i class="fa-solid fa-book-medical text-emerald-600 group-hover:scale-110 transition-transform"></i>
+                        <span>Danh mục môn học</span>
+                    </button>
+                    <a href="mailto:support@quizykhoa.vn" class="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 text-emerald-800 text-xs font-bold rounded-xl transition flex items-center space-x-2 shadow-sm group">
+                        <i class="fa-solid fa-headset text-teal-600 group-hover:scale-110 transition-transform"></i>
+                        <span>Hỗ trợ & Góp ý</span>
+                    </a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- MODAL OVERLAY CONTAINER -->
+    <div id="modalContainer" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4"></div>
+
+    <!-- GLOBAL TOAST NOTIFICATION -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- AI MEDICAL ASSISTANT CHATBUBBLE -->
+    <div id="chatBubbleContainer" class="fixed bottom-16 sm:bottom-20 right-6 z-50 flex flex-col items-end group">
+        <div id="chatHoverTooltip" onclick="app.toggleChatWindow()" class="mb-3 mr-1 bg-white border border-purple-200 shadow-xl rounded-2xl rounded-br-none p-3 max-w-[260px] text-xs transition-all duration-300 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transform translate-y-2 group-hover:translate-y-0 cursor-pointer relative">
+            <div class="flex justify-between items-center mb-1">
+                <span class="font-extrabold text-purple-700 text-[11px] flex items-center">
+                    <span class="w-2 h-2 bg-emerald-400 rounded-full mr-1.5 animate-ping"></span>
+                    Quiz Y Khoa AI
+                </span>
+                <span class="text-[10px] text-purple-400 font-mono">Hỗ trợ 24/7</span>
+            </div>
+            <p class="text-slate-700 leading-snug">
+                Em ơi! Cần trợ lý AI giải đáp thắc mắc bài học hay hướng dẫn nâng cấp Pro không?
+            </p>
+            <div class="absolute -bottom-2 right-4 w-3 h-3 bg-white border-r border-b border-purple-200 transform rotate-45"></div>
+        </div>
+
+        <button id="chatToggleButton" onclick="app.toggleChatWindow()" class="w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-500 via-teal-600 to-cyan-600 text-white shadow-xl shadow-emerald-300/50 hover:scale-110 active:scale-95 transition-all duration-300 flex items-center justify-center relative border-2 border-white">
+            <i class="fa-solid fa-user-doctor text-2xl group-hover:rotate-12 transition-transform"></i>
+            <span class="absolute -top-1 -right-1 w-4 h-4 bg-purple-600 rounded-full border-2 border-white flex items-center justify-center">
+                <span class="w-2 h-2 bg-white rounded-full animate-ping"></span>
+            </span>
+        </button>
+
+        <div id="chatWindow" class="hidden absolute bottom-16 right-0 w-[90vw] sm:w-[380px] h-[500px] bg-white rounded-3xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden transition-all duration-300 transform scale-95 opacity-0 origin-bottom-right z-50">
+            <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 p-4 text-white flex justify-between items-center shadow-sm">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/20">
+                        <i class="fa-solid fa-user-doctor text-lg"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-sm leading-none">Trợ Lý Y Khoa AI</h4>
+                        <span class="text-[11px] text-emerald-100 flex items-center mt-1">
+                            <span class="w-1.5 h-1.5 bg-emerald-300 rounded-full mr-1.5 animate-pulse"></span> Sẵn sàng giải đáp 24/7
+                        </span>
+                    </div>
+                </div>
+                <button onclick="app.toggleChatWindow()" class="text-white/80 hover:text-white w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <div id="chatMessages" class="flex-grow p-4 overflow-y-auto space-y-3 bg-slate-50/50 text-xs">
+                <div class="flex space-x-2">
+                    <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 font-bold text-[10px]">AI</div>
+                    <div class="bg-white p-3 rounded-2xl rounded-tl-none border border-slate-200 text-slate-700 max-w-[85%] shadow-sm leading-relaxed">
+                        Chào bạn! Mình là Trợ lý Y khoa của <strong>Quiz Y Khoa</strong>. Bạn có thắc mắc gì về kiến thức Y học hoặc cách sử dụng website không? 🩺✨
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-3 bg-white border-t border-slate-200">
+                <form onsubmit="event.preventDefault(); app.sendChatMessage();" class="flex items-center space-x-2">
+                    <input type="text" id="chatInput" placeholder="Nhập câu hỏi sinh lý, giải phẫu..." class="flex-grow px-3.5 py-2 text-xs bg-slate-100 border border-transparent rounded-xl focus:bg-white focus:border-emerald-500 focus:outline-none transition">
+                    <button type="submit" id="chatSendBtn" class="w-9 h-9 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center justify-center shadow-md shadow-emerald-200 transition flex-shrink-0">
+                        <i class="fa-solid fa-paper-plane text-xs"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- KHỞI TẠO FIREBASE CLOUD REALTIME DATABASE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyC8bCzO3rkWdYnvFiRo5GDXFrR2Dod3FGI",
+            authDomain: "quizykhoa-dc2f5.firebaseapp.com",
+            databaseURL: "https://quizykhoa-dc2f5-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "quizykhoa-dc2f5",
+            storageBucket: "quizykhoa-dc2f5.appspot.com",
+            messagingSenderId: "952925616528",
+            appId: "1:952925616528:web:dbdb6d7b4a34bc6e189b15",
+            measurementId: "G-K95CVV233V"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const rtdb = firebase.database();
+
+        const DEFAULT_BANK_SETTINGS = {
+            bankId: 'MB',
+            bankName: 'MBBank (Ngân hàng Quân Đội)',
+            accountNo: '0399888999',
+            accountName: 'QUIZ Y KHOA MEDICAL ACADEMY',
+            customQrUrl: ''
+        };
+
+        const INITIAL_SUBJECTS = [
+            {
+                id: 'sbj_1',
+                name: 'Giải phẫu 1',
+                code: 'GP1',
+                icon: 'fa-box-tissue',
+                color: 'from-blue-500 to-cyan-500',
+                bgLight: 'bg-blue-50',
+                textColor: 'text-blue-600',
+                description: 'Giải phẫu đại cương, Xương khớp chi trên, chi dưới và đầu mặt cổ.',
+                chapters: [
+                    { id: 'ch_1', name: 'Đại cương Giải phẫu học', count: 12 },
+                    { id: 'ch_2', name: 'Xương khớp chi dưới - Phần 1', count: 6 },
+                    { id: 'ch_3', name: 'Xương khớp chi dưới - Phần 2', count: 10 },
+                    { id: 'ch_4', name: 'Khí quản - Tuyến giáp - Tuyến cận giáp', count: 8 },
+                    { id: 'ch_5', name: 'Phổi và màng phổi', count: 14 }
+                ]
+            },
+            {
+                id: 'sbj_2',
+                name: 'Giải phẫu 2',
+                code: 'GP2',
+                icon: 'fa-brain',
+                color: 'from-indigo-500 to-purple-500',
+                bgLight: 'bg-purple-50',
+                textColor: 'text-purple-600',
+                description: 'Giải phẫu Thần kinh, Ngực, Bụng và Hệ Tiết niệu - Sinh dục.',
+                chapters: [
+                    { id: 'ch_201', name: 'Hệ Thần kinh Trung ương & Ngoại biên', count: 10 },
+                    { id: 'ch_202', name: 'Giải phẫu Thận và Tiết niệu', count: 12 }
+                ]
+            },
+            {
+                id: 'sbj_3',
+                name: 'Sinh học và Di truyền',
+                code: 'SHDT',
+                icon: 'fa-dna',
+                color: 'from-emerald-500 to-teal-500',
+                bgLight: 'bg-emerald-50',
+                textColor: 'text-emerald-600',
+                description: 'Cấu trúc ADN, Đột biến di truyền, Chu kỳ tế bào và Bệnh học di truyền.',
+                chapters: [
+                    { id: 'ch_301', name: 'Cấu trúc & Cơ chế Nhân đôi ADN', count: 8 },
+                    { id: 'ch_302', name: 'Đột biến Nhiễm sắc thể', count: 7 }
+                ]
+            },
+            {
+                id: 'sbj_4',
+                name: 'Mô phôi',
+                code: 'MP',
+                icon: 'fa-microscope',
+                color: 'from-rose-500 to-pink-500',
+                bgLight: 'bg-rose-50',
+                textColor: 'text-rose-600',
+                description: 'Cấu trúc vi mô các mô tổ chức và sự phát triển phôi thai người.',
+                chapters: [
+                    { id: 'ch_401', name: 'Mô biểu mô & Mô liên kết', count: 9 }
+                ]
+            },
+            {
+                id: 'sbj_5',
+                name: 'Hóa học',
+                code: 'HH',
+                icon: 'fa-flask',
+                color: 'from-amber-500 to-orange-500',
+                bgLight: 'bg-amber-50',
+                textColor: 'text-amber-600',
+                description: 'Hóa đại cương, Dung dịch, Động hóa học và Cân bằng hóa học ứng dụng Y sinh.',
+                chapters: [
+                    { id: 'ch_501', name: 'Dung dịch & Nồng độ Y học', count: 6 }
+                ]
+            },
+            {
+                id: 'sbj_6',
+                name: 'Hóa sinh',
+                code: 'HS',
+                icon: 'fa-atom',
+                color: 'from-violet-500 to-purple-600',
+                bgLight: 'bg-violet-50',
+                textColor: 'text-violet-600',
+                description: 'Chuyển hóa Glucid, Lipid, Protid, Enzym và Chuyển hóa Năng lượng tế bào.',
+                chapters: [
+                    { id: 'ch_601', name: 'Enzym & Động học Enzym', count: 11 },
+                    { id: 'ch_602', name: 'Chuyển hóa Glucid & Chu trình Krebs', count: 10 }
+                ]
+            },
+            {
+                id: 'sbj_7',
+                name: 'Sinh lý học',
+                code: 'SLH',
+                icon: 'fa-heart-pulse',
+                color: 'from-red-500 to-rose-600',
+                bgLight: 'bg-red-50',
+                textColor: 'text-red-600',
+                description: 'Chức năng hệ Tuần hoàn, Hô hấp, Tiêu hóa, Nội tiết và Tiết niệu.',
+                chapters: [
+                    { id: 'ch_701', name: 'Sinh lý Hoạt động Tim & Mạch máu', count: 12 }
+                ]
+            },
+            {
+                id: 'sbj_8',
+                name: 'Vi sinh vật',
+                code: 'VSV',
+                icon: 'fa-virus',
+                color: 'from-teal-500 to-emerald-600',
+                bgLight: 'bg-teal-50',
+                textColor: 'text-teal-600',
+                description: 'Vi khuẩn, Virus y học và Kháng sinh đồ.',
+                chapters: [
+                    { id: 'ch_801', name: 'Đại cương Vi khuẩn & Kháng sinh', count: 8 }
+                ]
+            },
+            {
+                id: 'sbj_9',
+                name: 'Ký sinh trùng',
+                code: 'KST',
+                icon: 'fa-bugs',
+                color: 'from-yellow-600 to-amber-700',
+                bgLight: 'bg-yellow-50',
+                textColor: 'text-yellow-700',
+                description: 'Giun sán y học, Đơn bào ký sinh và Côn trùng truyền bệnh.',
+                chapters: [
+                    { id: 'ch_901', name: 'Ký sinh trùng Đơn bào (Sốt rét, Amip)', count: 9 }
+                ]
+            },
+            {
+                id: 'sbj_10',
+                name: 'Dược lý học',
+                code: 'DLH',
+                icon: 'fa-pills',
+                color: 'from-sky-500 to-blue-600',
+                bgLight: 'bg-sky-50',
+                textColor: 'text-sky-600',
+                description: 'Dược động học, Dược lực học và các nhóm thuốc điều trị chính.',
+                chapters: [
+                    { id: 'ch_1001', name: 'Dược động học & Dược lực học đại cương', count: 10 }
+                ]
+            },
+            {
+                id: 'sbj_11',
+                name: 'Bệnh học',
+                code: 'BH',
+                icon: 'fa-notes-medical',
+                color: 'from-slate-600 to-slate-800',
+                bgLight: 'bg-slate-100',
+                textColor: 'text-slate-700',
+                description: 'Cơ chế bệnh sinh, Triệu chứng học Nội khoa & Ngoại khoa cơ bản.',
+                chapters: [
+                    { id: 'ch_1101', name: 'Triệu chứng học Tim mạch & Hô hấp', count: 10 }
+                ]
+            }
+        ];
+
+        const INITIAL_QUESTIONS = [
+            {
+                id: 'q_1',
+                chapterId: 'ch_2',
+                question: 'Trọng lượng trung bình của mỗi quả thận ở người trưởng thành là bao nhiêu?',
+                type: 'single',
+                options: [
+                    { key: 'A', text: '150 gram', correct: true, exp: 'Thận người trưởng thành có trọng lượng trung bình khoảng 150 gram. Đây là con số giải phẫu chuẩn thường được sử dụng trong y học.' },
+                    { key: 'B', text: '160 gram', correct: false, exp: '160 gram lớn hơn mức trung bình sinh lý bình thường (thường từ 135-150g ở nam và 120-140g ở nữ).' },
+                    { key: 'C', text: '170 gram', correct: false, exp: '170 gram là trọng lượng hơi phì đại, không phải trị số trung bình sinh lý chuẩn.' },
+                    { key: 'D', text: '180 gram', correct: false, exp: '180 gram thường gặp trong các trường hợp thận phì đại bù trừ hoặc bệnh lý.' }
+                ],
+                generalExplanation: 'Thận người trưởng thành trung bình nặng khoảng 135 - 150g ở nam giới và 120 - 140g ở nữ giới. Giá trị chuẩn 150g thường được áp dụng trong các đề thi Giải Phẫu Y Khoa.'
+            },
+            {
+                id: 'q_2',
+                chapterId: 'ch_2',
+                question: 'Động mạch đùi là nguyên ủy tiếp theo của động mạch nào sau đây?',
+                type: 'single',
+                options: [
+                    { key: 'A', text: 'Động mạch chậu ngoài', correct: true, exp: 'Động mạch chậu ngoài đổi tên thành Động mạch đùi sau khi đi qua phía sau dây chằng bẹn.' },
+                    { key: 'B', text: 'Động mạch chậu trong', correct: false, exp: 'Động mạch chậu trong cấp máu chính cho các cơ quan trong chậu hông và vùng mông.' },
+                    { key: 'C', text: 'Động mạch chậu chung', correct: false, exp: 'Động mạch chậu chung tách thành chậu trong và chậu ngoài tại đốt sống L4-L5.' },
+                    { key: 'D', text: 'Động mạch khoeo', correct: false, exp: 'Động mạch khoeo là sự tiếp nối của động mạch đùi sau khi đi qua lỗ gân cơ khép.' }
+                ],
+                generalExplanation: 'Động mạch chậu ngoài sau khi chui qua dây chằng bẹn (tại điểm giữa dây chằng bẹn) thì đổi tên thành Động mạch đùi.'
+            },
+            {
+                id: 'q_3',
+                chapterId: 'ch_2',
+                question: 'Cơ nào sau đây KHÔNG thuộc nhóm cơ vùng đùi trước?',
+                type: 'single',
+                options: [
+                    { key: 'A', text: 'Cơ tứ đầu đùi', correct: false, exp: 'Cơ tứ đầu đùi là cơ chính ở vùng đùi trước, duỗi cẳng chân.' },
+                    { key: 'B', text: 'Cơ may', correct: false, exp: 'Cơ may là cơ dài nhất cơ thể, nằm ở vùng đùi trước nông.' },
+                    { key: 'C', text: 'Cơ thon', correct: true, exp: 'Cơ thon thuộc nhóm cơ vùng đùi trong (nhóm cơ khép đùi).' },
+                    { key: 'D', text: 'Cơ thắt lưng chậu', correct: false, exp: 'Cơ thắt lưng chậu đi vào vùng đùi trước qua hố chậu.' }
+                ],
+                generalExplanation: 'Vùng đùi trong bao gồm các cơ khép: cơ lược, cơ khép dài, cơ thon, cơ khép ngắn, cơ khép lớn. Cơ thon nằm ở vùng đùi trong.'
+            },
+            {
+                id: 'q_4',
+                chapterId: 'ch_2',
+                question: 'Thần kinh nào chi phối cho tất cả các cơ vùng đùi sau (nhóm cơ gân kheo)?',
+                type: 'single',
+                options: [
+                    { key: 'A', text: 'Thần kinh đùi', correct: false, exp: 'Thần kinh đùi chi phối vùng đùi trước.' },
+                    { key: 'B', text: 'Thần kinh ngồi (Thần kinh hông to)', correct: true, exp: 'Thần kinh ngồi (Sciatic nerve) chi phối vận động toàn bộ các cơ vùng đùi sau.' },
+                    { key: 'C', text: 'Thần kinh bịt', correct: false, exp: 'Thần kinh bịt chi phối cho các cơ vùng đùi trong.' },
+                    { key: 'D', text: 'Thần kinh chày', correct: false, exp: 'Thần kinh chày chi phối vùng cẳng chân sau, là một nhánh tận của thần kinh ngồi.' }
+                ],
+                generalExplanation: 'Thần kinh ngồi (L4-S3) là dây thần kinh lớn nhất cơ thể, chạy ra vùng mông và xuống vùng đùi sau chi phối cho cơ bán gân, bán màng và nhị đầu đùi.'
+            },
+            {
+                id: 'q_5',
+                chapterId: 'ch_2',
+                question: 'Xương bánh chè thuộc loại xương nào sau đây?',
+                type: 'single',
+                options: [
+                    { key: 'A', text: 'Xương dẹt', correct: false, exp: 'Xương dẹt là các xương như xương vòm sọ, xương vai.' },
+                    { key: 'B', text: 'Xương mè', correct: true, exp: 'Xương bánh chè là xương mè lớn nhất cơ thể, nằm trong gân cơ tứ đầu đùi.' },
+                    { key: 'C', text: 'Xương ngắn', correct: false, exp: 'Xương ngắn như xương cổ tay, cổ chân.' },
+                    { key: 'D', text: 'Xương bất định hình', correct: false, exp: 'Xương bất định hình là các đốt sống, xương cột sống.' }
+                ],
+                generalExplanation: 'Xương bánh chè (Patella) là xương mè (Sesamoid bone) lớn nhất cơ thể, nằm trong gân cơ tứ đầu đùi giúp tăng lực đòn bẩy cho động tác duỗi gối.'
+            },
+            {
+                id: 'q_6',
+                chapterId: 'ch_2',
+                question: 'Tĩnh mạch hiển lớn đổ về tĩnh mạch nào?',
+                type: 'single',
+                options: [
+                    { key: 'A', text: 'Tĩnh mạch khoeo', correct: false, exp: 'Tĩnh mạch hiển nhỏ mới đổ vào tĩnh mạch khoeo ở vùng hố khoeo.' },
+                    { key: 'B', text: 'Tĩnh mạch đùi', correct: true, exp: 'Tĩnh mạch hiển lớn chui qua lỗ hiển ở vùng đùi trên để đổ vào tĩnh mạch đùi.' },
+                    { key: 'C', text: 'Tĩnh mạch chậu ngoài', correct: false, exp: 'Tĩnh mạch đùi sau khi qua dây chằng bẹn mới thành tĩnh mạch chậu ngoài.' },
+                    { key: 'D', text: 'Tĩnh mạch chủ dưới', correct: false, exp: 'Tĩnh mạch hiển lớn là tĩnh mạch nông ở chân, không đổ trực tiếp vào tĩnh mạch chủ.' }
+                ],
+                generalExplanation: 'Tĩnh mạch hiển lớn bắt đầu từ mạn trong bàn chân, đi trước mắt cá trong, đi lên mặt trong cẳng chân và đùi, đổ vào tĩnh mạch đùi qua lỗ hiển.'
+            }
+        ];
+
+        class MedicalQuizApp {
+            constructor() {
+                this.state = {
+                    currentView: 'home',
+                    selectedSubjectId: null,
+                    selectedChapterId: null,
+                    currentQuestionIndex: 0,
+                    userAnswers: {},
+                    showOptionExplanations: false,
+                    searchQuery: '',
+                    editingQuestion: null,
+                    isChatOpen: false,
+                    selectedPlan: 'QUIZYK1T'
+                };
+
+                this.cache = {
+                    subjects: INITIAL_SUBJECTS,
+                    questions: INITIAL_QUESTIONS,
+                    users: [
+                        { id: 'u_super_admin', email: 'superadmin@quizykhoa.vn', passwordHash: 'admin123', role: 'super_admin', tier: 'pro', createdAt: new Date().toISOString(), lastLoginAt: new Date().toISOString(), lastHeartbeatAt: new Date().toISOString(), isOnline: false }
+                    ],
+                    bankSettings: DEFAULT_BANK_SETTINGS,
+                    payments: [
+                        { id: 'PAY10023', userEmail: 'student@med.edu.vn', plan: 'Pro 1 Tháng', amount: 9000, date: new Date().toISOString(), status: 'SUCCESS', refCode: 'QUIZYK1T_STUDENT' }
+                    ],
+                    codes: [
+                        { code: 'PRO-MED-2026-X1', plan: 'QUIZYK1T', used: false },
+                        { code: 'PRO-MED-YEAR-99', plan: 'QUIZ1N', used: false }
+                    ],
+                    notifications: [
+                        { title: 'Firebase Cloud Real-time', message: 'Hệ thống đã đồng bộ trực tuyến qua Firebase Cloud.', time: 'Vừa xong' }
+                    ],
+                    auditLogs: [
+                        { id: 'log_1', operator: 'System', action: 'Khởi tạo kết nối Firebase Cloud', target: 'Realtime Database', timestamp: new Date().toISOString() }
+                    ],
+                    currentUser: null
+                };
+
+                this.initFirebaseCloudSync();
+                this.initHeartbeat();
+            }
+
+            // --- KHỞI TẠO ĐỒNG BỘ ĐÁM MÂY REALTIME FIREBASE (ĐÃ TÍCH HỢP BẢN VÁ LỖI TÀI KHOẢN) ---
+            initFirebaseCloudSync() {
+                rtdb.ref('subjects').on('value', (snapshot) => {
+                    const val = snapshot.val();
+                    if (val) {
+                        this.cache.subjects = val;
+                        this.render();
+                    } else {
+                        rtdb.ref('subjects').set(INITIAL_SUBJECTS);
+                    }
+                });
+
+                rtdb.ref('questions').on('value', (snapshot) => {
+                    const val = snapshot.val();
+                    if (val) {
+                        this.cache.questions = Array.isArray(val) ? val.filter(Boolean) : Object.values(val).filter(Boolean);
+                        this.render();
+                    } else {
+                        rtdb.ref('questions').set(INITIAL_QUESTIONS);
+                    }
+                });
+
+                // Sửa lỗi ghi đè mảng users bằng cách lọc bỏ giá trị null/undefined và chuẩn hóa mảng sạch
+                rtdb.ref('users').on('value', (snapshot) => {
+                    const val = snapshot.val();
+                    if (val) {
+                        if (Array.isArray(val)) {
+                            this.cache.users = val.filter(Boolean);
+                        } else {
+                            this.cache.users = Object.values(val).filter(Boolean);
+                        }
+                        this.render();
+                    } else {
+                        // Khởi tạo tài khoản Quản trị mặc định nếu nhánh users trên Firebase hoàn toàn trống
+                        const initialUsers = [
+                            { 
+                                id: 'u_super_admin', 
+                                email: 'superadmin@quizykhoa.vn', 
+                                passwordHash: 'admin123', 
+                                role: 'super_admin', 
+                                tier: 'pro', 
+                                createdAt: new Date().toISOString(), 
+                                lastLoginAt: new Date().toISOString(), 
+                                lastHeartbeatAt: new Date().toISOString(), 
+                                isOnline: false 
+                            }
+                        ];
+                        rtdb.ref('users').set(initialUsers);
+                    }
+                });
+
+                rtdb.ref('bankSettings').on('value', (snapshot) => {
+                    const val = snapshot.val();
+                    if (val) {
+                        this.cache.bankSettings = val;
+                        this.render();
+                    }
+                });
+
+                rtdb.ref('payments').on('value', (snapshot) => {
+                    const val = snapshot.val();
+                    if (val) {
+                        this.cache.payments = Array.isArray(val) ? val.filter(Boolean) : Object.values(val).filter(Boolean);
+                        this.render();
+                    }
+                });
+
+                rtdb.ref('notifications').on('value', (snapshot) => {
+                    const val = snapshot.val();
+                    if (val) {
+                        this.cache.notifications = Array.isArray(val) ? val.filter(Boolean) : Object.values(val).filter(Boolean);
+                    }
+                });
+
+                rtdb.ref('auditLogs').on('value', (snapshot) => {
+                    const val = snapshot.val();
+                    if (val) {
+                        this.cache.auditLogs = Array.isArray(val) ? val.filter(Boolean) : Object.values(val).filter(Boolean);
+                    }
+                });
+
+                // Khôi phục phiên đăng nhập của người dùng từ localStorage
+                const savedUser = localStorage.getItem('qyk_current_user_session');
+                if (savedUser) {
+                    try {
+                        this.cache.currentUser = JSON.parse(savedUser);
+                    } catch (e) {
+                        localStorage.removeItem('qyk_current_user_session');
+                    }
+                }
+            }
+
+            getSubjects() { return this.cache.subjects; }
+            saveSubjects(sbjs) { rtdb.ref('subjects').set(sbjs); }
+
+            getQuestions() { return this.cache.questions; }
+            saveQuestions(qs) { rtdb.ref('questions').set(qs); }
+
+            getUsers() { 
+                return Array.isArray(this.cache.users) ? this.cache.users : []; 
+            }
+            
+            saveUsers(users) { 
+                // Đảm bảo dữ liệu đẩy lên Firebase luôn là mảng tuần tự không chứa phần tử rỗng
+                const cleanUsers = Array.isArray(users) ? users.filter(Boolean) : [];
+                rtdb.ref('users').set(cleanUsers); 
+            }
+
+            getCurrentUser() { return this.cache.currentUser; }
+            setCurrentUser(user) {
+                this.cache.currentUser = user;
+                if (user) {
+                    localStorage.setItem('qyk_current_user_session', JSON.stringify(user));
+                } else {
+                    localStorage.removeItem('qyk_current_user_session');
+                }
+            }
+
+            getBankSettings() { return this.cache.bankSettings; }
+            saveBankSettings(settings) { rtdb.ref('bankSettings').set(settings); }
+
+            getPayments() { return this.cache.payments; }
+            savePayments(pmts) { rtdb.ref('payments').set(pmts); }
+
+            getCodes() { return this.cache.codes; }
+            saveCodes(codes) { this.cache.codes = codes; }
+
+            getAuditLogs() { return this.cache.auditLogs; }
+            addAuditLog(action, target) {
+                const logs = this.getAuditLogs() || [];
+                const operator = this.getCurrentUser()?.email || 'System';
+                logs.unshift({
+                    id: 'log_' + Date.now(),
+                    operator,
+                    action,
+                    target,
+                    timestamp: new Date().toISOString()
+                });
+                rtdb.ref('auditLogs').set(logs);
+            }
+
+            getNotifications() { return this.cache.notifications; }
+            addNotification(msg) {
+                const notes = this.getNotifications() || [];
+                notes.unshift({ title: 'Thông báo hệ thống', message: msg, time: new Date().toLocaleTimeString('vi-VN') });
+                rtdb.ref('notifications').set(notes);
+            }
+
+            isAdmin() {
+                const u = this.getCurrentUser();
+                return u && (u.role === 'admin' || u.role === 'super_admin');
+            }
+
+            isSuperAdmin() {
+                const u = this.getCurrentUser();
+                return u && u.role === 'super_admin';
+            }
+
+            initHeartbeat() {
+                this.sendHeartbeat();
+                setInterval(() => {
+                    this.sendHeartbeat();
+                }, 10000);
+
+                window.addEventListener('beforeunload', () => {
+                    this.setUserOffline();
+                });
+
+                setInterval(() => {
+                    if (this.state.currentView === 'admin' && this.isSuperAdmin()) {
+                        this.updateOnlineStatusDisplay();
+                    }
+                }, 5000);
+            }
+
+            sendHeartbeat() {
+                const currentUser = this.getCurrentUser();
+                if (!currentUser) return;
+
+                const users = this.getUsers();
+                const u = users.find(x => x.id === currentUser.id);
+                if (u) {
+                    const now = new Date().toISOString();
+                    u.lastHeartbeatAt = now;
+                    u.isOnline = true;
+                    this.saveUsers(users);
+
+                    currentUser.lastHeartbeatAt = now;
+                    currentUser.isOnline = true;
+                    this.setCurrentUser(currentUser);
+                }
+            }
+
+            setUserOffline() {
+                const currentUser = this.getCurrentUser();
+                if (!currentUser) return;
+
+                const users = this.getUsers();
+                const u = users.find(x => x.id === currentUser.id);
+                if (u) {
+                    u.isOnline = false;
+                    this.saveUsers(users);
+                }
+            }
+
+            isUserActive(user) {
+                if (!user.isOnline) return false;
+                if (!user.lastHeartbeatAt) return false;
+                const lastBeat = new Date(user.lastHeartbeatAt).getTime();
+                const now = Date.now();
+                return (now - lastBeat) < 30000;
+            }
+
+            updateOnlineStatusDisplay() {
+                const users = this.getUsers();
+                const activeUsers = users.filter(u => this.isUserActive(u));
+                const activeCountEl = document.getElementById('statActiveUsersCount');
+                const inactiveCountEl = document.getElementById('statInactiveUsersCount');
+
+                if (activeCountEl) activeCountEl.innerText = activeUsers.length;
+                if (inactiveCountEl) inactiveCountEl.innerText = users.length - activeUsers.length;
+
+                const userTbody = document.getElementById('adminUserTableBody');
+                if (userTbody && this.isSuperAdmin()) {
+                    userTbody.innerHTML = users.map(u => {
+                        const active = this.isUserActive(u);
+                        return `
+                            <tr>
+                                <td class="p-3 font-semibold text-slate-800">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="w-2.5 h-2.5 rounded-full ${active ? 'bg-emerald-500 animate-pulse shadow-sm shadow-emerald-400' : 'bg-slate-300'}"></span>
+                                        <span>${u.email}</span>
+                                    </div>
+                                    <div class="text-[10px] text-slate-400 ml-4">Đăng ký: ${new Date(u.createdAt || Date.now()).toLocaleString('vi-VN')}</div>
+                                </td>
+                                <td class="p-3">
+                                    <span class="px-2.5 py-0.5 rounded-full font-bold ${active ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-100 text-slate-500'}">
+                                        <i class="fa-solid ${active ? 'fa-signal text-emerald-600' : 'fa-moon text-slate-400'} mr-1"></i>
+                                        ${active ? 'Active (Trực tuyến)' : 'Inactive (Ngoại tuyến)'}
+                                    </span>
+                                </td>
+                                <td class="p-3">
+                                    <span class="px-2.5 py-0.5 rounded-full font-bold ${u.role === 'super_admin' ? 'bg-amber-100 text-amber-800 border border-amber-300' : u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}">
+                                        ${u.role.toUpperCase()}
+                                    </span>
+                                </td>
+                                <td class="p-3">
+                                    <span class="px-2.5 py-0.5 rounded-full font-bold ${u.tier === 'pro' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">
+                                        ${u.tier.toUpperCase()}
+                                    </span>
+                                </td>
+                                <td class="p-3 text-slate-600 font-mono text-[11px]">
+                                    <div><i class="fa-solid fa-clock mr-1 text-emerald-500"></i> ${u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString('vi-VN') : 'Mới đăng ký'}</div>
+                                    <div class="text-[10px] text-slate-400">Tín hiệu: ${u.lastHeartbeatAt ? new Date(u.lastHeartbeatAt).toLocaleTimeString('vi-VN') : 'Không có'}</div>
+                                </td>
+                                <td class="p-3 text-right space-x-2">
+                                    ${this.isSuperAdmin() && u.role !== 'super_admin' ? `
+                                        <button onclick="app.adminChangeUserRole('${u.id}')" class="px-2.5 py-1 bg-purple-100 text-purple-700 font-bold rounded-lg hover:bg-purple-200">
+                                            ${u.role === 'admin' ? 'Hạ xuống Student' : 'Thăng Admin'}
+                                        </button>
+                                        <button onclick="app.deleteUser('${u.id}')" class="p-1 text-rose-500 hover:bg-rose-50 rounded">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    ` : '<span class="text-slate-400 italic text-[10px]">Được bảo vệ</span>'}
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+
+            login(email, password) {
+                const cleanEmail = email ? email.trim().toLowerCase() : '';
+                const users = this.getUsers();
+                
+                const u = users.find(user => user.email && user.email.toLowerCase() === cleanEmail && user.passwordHash === password);
+                
+                if (u) {
+                    const now = new Date().toISOString();
+                    u.lastLoginAt = now;
+                    u.lastHeartbeatAt = now;
+                    u.isOnline = true;
+                    
+                    this.saveUsers(users);
+                    this.setCurrentUser(u);
+                    this.addAuditLog('Đăng nhập hệ thống', u.email);
+                    this.toast(`Đăng nhập thành công! Xin chào ${u.email}`, 'success');
+                    this.render();
+                } else {
+                    this.toast('Tài khoản hoặc mật khẩu không chính xác!', 'error');
+                }
+            }
+
+            register(email, password, confirmPassword) {
+                const cleanEmail = email ? email.trim().toLowerCase() : '';
+                if (!cleanEmail || !password) {
+                    this.toast('Vui lòng nhập đầy đủ thông tin đăng ký!', 'error');
+                    return;
+                }
+
+                if (password !== confirmPassword) {
+                    this.toast('Mật khẩu xác nhận không khớp!', 'error');
+                    return;
+                }
+
+                const users = this.getUsers();
+                
+                const existingUser = users.find(u => u.email && u.email.toLowerCase() === cleanEmail);
+                if (existingUser) {
+                    this.toast('Email này đã được đăng ký trên hệ thống! Vui lòng đăng nhập.', 'error');
+                    this.showAuthModal('login');
+                    return;
+                }
+
+                const isFirstUser = users.length === 0;
+                const role = isFirstUser ? 'super_admin' : 'student';
+                const tier = isFirstUser ? 'pro' : 'free';
+
+                const now = new Date().toISOString();
+                const newUser = {
+                    id: 'u_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+                    email: cleanEmail,
+                    passwordHash: password,
+                    role,
+                    tier,
+                    createdAt: now,
+                    lastLoginAt: now,
+                    lastHeartbeatAt: now,
+                    isOnline: true
+                };
+
+                users.push(newUser);
+                this.saveUsers(users);
+                this.setCurrentUser(newUser);
+
+                this.addNotification(`Tài khoản ${cleanEmail} vừa đăng ký mới.`);
+                this.addAuditLog('Đăng ký tài khoản mới', `${cleanEmail} (${role})`);
+
+                this.closeModal();
+                this.toast(isFirstUser ? 'Đăng ký thành công! Bạn đã được cấp quyền Super Admin.' : 'Đăng ký tài khoản thành công!', 'success');
+                this.render();
+            }
+
+            logout() {
+                this.setUserOffline();
+                this.setCurrentUser(null);
+                this.toast('Đã đăng xuất khỏi tài khoản.', 'info');
+                this.render();
+            }
+
+            restartQuiz() {
+                this.state.currentQuestionIndex = 0;
+                this.state.userAnswers = {};
+                this.state.showOptionExplanations = false;
+                this.render();
+            }
+
+            toggleChatWindow() {
+                const chatWin = document.getElementById('chatWindow');
+                if (!chatWin) return;
+
+                this.state.isChatOpen = !this.state.isChatOpen;
+                if (this.state.isChatOpen) {
+                    chatWin.classList.remove('hidden');
+                    setTimeout(() => {
+                        chatWin.classList.remove('scale-95', 'opacity-0');
+                        chatWin.classList.add('scale-100', 'opacity-100');
+                    }, 10);
+                } else {
+                    chatWin.classList.remove('scale-100', 'opacity-100');
+                    chatWin.classList.add('scale-95', 'opacity-0');
+                    setTimeout(() => {
+                        chatWin.classList.add('hidden');
+                    }, 300);
+                }
+            }
+
+            async sendChatMessage() {
+                const input = document.getElementById('chatInput');
+                const messagesContainer = document.getElementById('chatMessages');
+                if (!input || !messagesContainer) return;
+
+                const text = input.value.trim();
+                if (!text) return;
+
+                const userMsgHtml = `
+                    <div class="flex justify-end space-x-2">
+                        <div class="bg-emerald-600 text-white p-3 rounded-2xl rounded-tr-none max-w-[85%] shadow-sm leading-relaxed">
+                            ${text}
+                        </div>
+                    </div>
+                `;
+                messagesContainer.insertAdjacentHTML('beforeend', userMsgHtml);
+                input.value = '';
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                const loadingId = 'loading_' + Date.now();
+                const loadingHtml = `
+                    <div id="${loadingId}" class="flex space-x-2">
+                        <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 font-bold text-[10px]">AI</div>
+                        <div class="bg-white p-3 rounded-2xl rounded-tl-none border border-slate-200 text-slate-500 max-w-[85%] shadow-sm leading-relaxed flex items-center space-x-1.5">
+                            <span class="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></span>
+                            <span class="w-2 h-2 bg-teal-500 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                            <span class="w-2 h-2 bg-cyan-500 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                        </div>
+                    </div>
+                `;
+                messagesContainer.insertAdjacentHTML('beforeend', loadingHtml);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                setTimeout(() => {
+                    const loadingEl = document.getElementById(loadingId);
+                    if (loadingEl) loadingEl.remove();
+
+                    let reply = "Cảm ơn câu hỏi của bạn! Với thắc mắc này, bạn có thể tra cứu chi tiết trong danh mục môn học tương ứng hoặc nâng cấp tài khoản Pro để xem ngân hàng đáp án và lời giải chi tiết nhé!";
+                    
+                    const lower = text.toLowerCase();
+                    if (lower.includes('thận') || lower.includes('trọng lượng')) {
+                        reply = "Thận người trưởng thành có trọng lượng trung bình khoảng 135 - 150 gram (ở nam) và 120 - 140 gram (ở nữ). Trong các đề thi Giải phẫu Y khoa chuẩn, con số 150 gram thường được lấy làm đáp án chính xác!";
+                    } else if (lower.includes('pro') || lower.includes('nâng cấp') || lower.includes('giá')) {
+                        reply = "Gói Pro có 2 lựa chọn: Gói 1 Tháng (QUIZYK1T) giá 9.000 VNĐ và Gói 1 Năm (QUIZ1N) giá 49.000 VNĐ. Bạn chọn gói, quét VietQR và gửi thông báo xác nhận chuyển khoản hoặc nhập Mã kích hoạt để Admin kích hoạt nhé!";
+                    } else if (lower.includes('giải phẫu') || lower.includes('xương') || lower.includes('cơ')) {
+                        reply = "Môn Giải phẫu 1 & 2 bao gồm đầy đủ hệ thống câu hỏi về Xương khớp chi trên, chi dưới, Đầu mặt cổ và Hệ thần kinh. Bạn chọn môn học ngay màn hình chính để luyện tập nhé!";
+                    }
+
+                    const aiMsgHtml = `
+                        <div class="flex space-x-2">
+                            <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 font-bold text-[10px]">AI</div>
+                            <div class="bg-white p-3 rounded-2xl rounded-tl-none border border-slate-200 text-slate-700 max-w-[85%] shadow-sm leading-relaxed">
+                                ${reply}
+                            </div>
+                        </div>
+                    `;
+                    messagesContainer.insertAdjacentHTML('beforeend', aiMsgHtml);
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }, 800);
+            }
+
+            nextQuestion() {
+                this.state.currentQuestionIndex++;
+                this.state.showOptionExplanations = false;
+                this.render();
+            }
+
+            toggleOptionExplanations() {
+                this.state.showOptionExplanations = !this.state.showOptionExplanations;
+                this.render();
+            }
+
+            handleSearchInput(val) {
+                this.state.searchQuery = val.trim().toLowerCase();
+                
+                const navSearch = document.getElementById('globalNavSearch');
+                const heroSearch = document.getElementById('heroSearchInput');
+                if (navSearch && navSearch.value !== val) navSearch.value = val;
+                if (heroSearch && heroSearch.value !== val) heroSearch.value = val;
+
+                const cards = document.querySelectorAll('.subject-card');
+                let visibleCount = 0;
+
+                cards.forEach(card => {
+                    const name = card.getAttribute('data-name') || '';
+                    const code = card.getAttribute('data-code') || '';
+                    const desc = card.getAttribute('data-desc') || '';
+
+                    if (!this.state.searchQuery || name.includes(this.state.searchQuery) || code.includes(this.state.searchQuery) || desc.includes(this.state.searchQuery)) {
+                        card.classList.remove('hidden');
+                        visibleCount++;
+                    } else {
+                        card.classList.add('hidden');
+                    }
+                });
+
+                const countEl = document.getElementById('subjectCountDisplay');
+                if (countEl) countEl.innerText = `${visibleCount} môn học`;
+            }
+
+            clearSearch() {
+                this.state.searchQuery = '';
+                const navInput = document.getElementById('globalNavSearch');
+                const heroInput = document.getElementById('heroSearchInput');
+                if (navInput) navInput.value = '';
+                if (heroInput) heroInput.value = '';
+                this.handleSearchInput('');
+            }
+
+            deleteSubject(id) {
+                if (!this.isAdmin()) return;
+                
+                const subjects = this.getSubjects();
+                const targetSubject = subjects.find(s => s.id === id);
+                if (!targetSubject) {
+                    this.toast('Môn học không tồn tại hoặc đã bị xóa.', 'error');
+                    return;
+                }
+
+                const modalHtml = `
+                    <div class="bg-white rounded-3xl max-w-md w-full p-6 relative shadow-2xl border border-slate-100 text-center">
+                        <div class="w-14 h-14 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-extrabold text-slate-900 mb-2">Xác Nhận Xóa Môn Học</h3>
+                        <p class="text-xs text-slate-600 mb-6 leading-relaxed">
+                            Bạn có chắc chắn muốn xóa mục này không?<br>
+                            <span class="font-bold text-rose-600">"${targetSubject.name}"</span> cùng tất cả các chương bài tập và câu hỏi liên quan sẽ bị xóa vĩnh viễn trên Cloud.
+                        </p>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="app.closeModal()" class="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition">
+                                Hủy
+                            </button>
+                            <button onclick="app.executeDeleteSubject('${id}')" class="py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-200 transition">
+                                Xác nhận xóa
+                            </button>
+                        </div>
+                    </div>
+                `;
+                this.showModal(modalHtml);
+            }
+
+            executeDeleteSubject(id) {
+                let subjects = this.getSubjects();
+                const targetSubject = subjects.find(s => s.id === id);
+                
+                if (targetSubject) {
+                    const chapterIds = targetSubject.chapters ? targetSubject.chapters.map(c => c.id) : [];
+                    if (chapterIds.length > 0) {
+                        let questions = this.getQuestions();
+                        questions = questions.filter(q => !chapterIds.includes(q.chapterId));
+                        this.saveQuestions(questions);
+                    }
+
+                    subjects = subjects.filter(s => s.id !== id);
+                    this.saveSubjects(subjects);
+
+                    if (this.state.selectedSubjectId === id) {
+                        this.state.selectedSubjectId = null;
+                        this.state.currentView = 'home';
+                    }
+
+                    this.addAuditLog('Xóa môn học', id);
+                    this.closeModal();
+                    this.toast('Đã đồng bộ xóa môn học trên Cloud!', 'success');
+                    this.render();
+                }
+            }
+
+            showAddChapterModal() {
+                if (!this.isAdmin()) {
+                    this.toast('Chỉ Admin mới có quyền thêm chương học!', 'error');
+                    return;
+                }
+
+                const subjectId = this.state.selectedSubjectId;
+                const subjects = this.getSubjects();
+                const subject = subjects.find(s => s.id === subjectId);
+
+                if (!subject) {
+                    this.toast('Không tìm thấy thông tin môn học!', 'error');
+                    return;
+                }
+
+                const modalHtml = `
+                    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 relative shadow-2xl border border-slate-100">
+                        <button onclick="app.closeModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        <h3 class="text-lg font-bold text-slate-900 mb-1">Thêm Chương Học Mới</h3>
+                        <p class="text-xs text-slate-500 mb-4">Môn: <strong class="text-emerald-700">${subject.name}</strong></p>
+                        <form onsubmit="event.preventDefault(); app.handleAddChapterSubmit('${subject.id}');" class="space-y-3 text-xs">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Tên Chương Học:</label>
+                                <input type="text" id="newChapterName" required placeholder="Ví dụ: Chương 3: Sinh lý màng tế bào" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow transition">Lưu & Thêm Chương</button>
+                        </form>
+                    </div>
+                `;
+                this.showModal(modalHtml);
+            }
+
+            handleAddChapterSubmit(subjectId) {
+                const name = document.getElementById('newChapterName').value.trim();
+                if (!name) {
+                    this.toast('Vui lòng nhập tên chương học!', 'warning');
+                    return;
+                }
+
+                const subjects = this.getSubjects();
+                const subject = subjects.find(s => s.id === subjectId);
+
+                if (subject) {
+                    if (!subject.chapters) subject.chapters = [];
+                    const newChapterId = 'ch_' + Date.now();
+                    subject.chapters.push({
+                        id: newChapterId,
+                        name: name,
+                        count: 0
+                    });
+
+                    this.saveSubjects(subjects);
+                    this.addNotification(`Đã thêm chương học mới vào ${subject.name}: ${name}`);
+                    this.addAuditLog('Thêm chương học', `${subject.name} - ${name}`);
+                    this.closeModal();
+                    this.toast('Đã thêm chương học thành công lên Cloud!', 'success');
+                    this.render();
+                }
+            }
+
+            deleteChapter(subjectId, chapterId) {
+                if (!this.isAdmin()) return;
+
+                const subjects = this.getSubjects();
+                const sbj = subjects.find(s => s.id === subjectId);
+                const ch = sbj?.chapters?.find(c => c.id === chapterId);
+
+                if (!ch) {
+                    this.toast('Chương học không tồn tại hoặc đã bị xóa.', 'error');
+                    return;
+                }
+
+                const modalHtml = `
+                    <div class="bg-white rounded-3xl max-w-md w-full p-6 relative shadow-2xl border border-slate-100 text-center">
+                        <div class="w-14 h-14 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <i class="fa-solid fa-trash-can text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-extrabold text-slate-900 mb-2">Xác Nhận Xóa Chương Học</h3>
+                        <p class="text-xs text-slate-600 mb-6 leading-relaxed">
+                            Bạn có chắc chắn muốn xóa mục này không?<br>
+                            <span class="font-bold text-rose-600">"${ch.name}"</span> và tất cả câu hỏi thuộc chương này sẽ bị xóa khỏi Cloud.
+                        </p>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="app.closeModal()" class="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition">
+                                Hủy
+                            </button>
+                            <button onclick="app.executeDeleteChapter('${subjectId}', '${chapterId}')" class="py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-200 transition">
+                                Xác nhận xóa
+                            </button>
+                        </div>
+                    </div>
+                `;
+                this.showModal(modalHtml);
+            }
+
+            executeDeleteChapter(subjectId, chapterId) {
+                let subjects = this.getSubjects();
+                const sbj = subjects.find(s => s.id === subjectId);
+                
+                if (sbj && sbj.chapters) {
+                    sbj.chapters = sbj.chapters.filter(c => c.id !== chapterId);
+                    this.saveSubjects(subjects);
+
+                    let questions = this.getQuestions();
+                    questions = questions.filter(q => q.chapterId !== chapterId);
+                    this.saveQuestions(questions);
+
+                    if (this.state.selectedChapterId === chapterId) {
+                        this.state.selectedChapterId = null;
+                        this.state.currentView = 'chapter_list';
+                    }
+
+                    this.addAuditLog('Xóa chương bài tập', chapterId);
+                    this.closeModal();
+                    this.toast('Đã đồng bộ xóa chương bài tập thành công!', 'success');
+                    this.render();
+                }
+            }
+
+            deleteQuestion(questionId) {
+                if (!this.isAdmin()) return;
+                
+                const questions = this.getQuestions();
+                const targetQ = questions.find(q => q.id === questionId);
+                if (!targetQ) {
+                    this.toast('Câu hỏi không tồn tại hoặc đã bị xóa.', 'error');
+                    return;
+                }
+
+                const modalHtml = `
+                    <div class="bg-white rounded-3xl max-w-md w-full p-6 relative shadow-2xl border border-slate-100 text-center">
+                        <div class="w-14 h-14 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <i class="fa-solid fa-file-circle-xmark text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-extrabold text-slate-900 mb-2">Xác Nhận Xóa Câu Hỏi</h3>
+                        <p class="text-xs text-slate-600 mb-6 leading-relaxed">
+                            Bạn có chắc chắn muốn xóa câu hỏi này không?<br>
+                            <span class="font-bold text-slate-800 line-clamp-2 mt-1">"${targetQ.question}"</span>
+                        </p>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="app.closeModal()" class="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition">
+                                Hủy
+                            </button>
+                            <button onclick="app.executeDeleteQuestion('${questionId}')" class="py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-200 transition">
+                                Xác nhận xóa
+                            </button>
+                        </div>
+                    </div>
+                `;
+                this.showModal(modalHtml);
+            }
+
+            executeDeleteQuestion(questionId) {
+                if (!this.isAdmin()) {
+                    this.toast('Bạn không có quyền quản lý và xóa câu hỏi!', 'error');
+                    return;
+                }
+
+                try {
+                    let questions = this.getQuestions() || [];
+                    const qToDelete = questions.find(q => q.id === questionId);
+                    
+                    if (!qToDelete) {
+                        this.toast('Lỗi: Không tìm thấy dữ liệu câu hỏi cần xóa trong hệ thống.', 'error');
+                        this.closeModal();
+                        return;
+                    }
+
+                    const chId = qToDelete.chapterId;
+                    
+                    questions = questions.filter(q => q.id !== questionId);
+                    this.saveQuestions(questions);
+
+                    let subjects = this.getSubjects();
+                    subjects.forEach(s => {
+                        if (s.chapters) {
+                            const ch = s.chapters.find(c => c.id === chId);
+                            if (ch && ch.count > 0) ch.count -= 1;
+                        }
+                    });
+                    this.saveSubjects(subjects);
+
+                    const remainingQuestions = questions.filter(q => q.chapterId === chId);
+                    if (this.state.currentQuestionIndex >= remainingQuestions.length && remainingQuestions.length > 0) {
+                        this.state.currentQuestionIndex = remainingQuestions.length - 1;
+                    }
+
+                    this.addAuditLog('Xóa câu hỏi', questionId);
+                    this.closeModal();
+                    this.toast('Đã đồng bộ xóa câu hỏi trên Cloud!', 'success');
+                    this.render();
+                } catch (err) {
+                    console.error('Lỗi khi thực hiện xóa câu hỏi:', err);
+                    this.closeModal();
+                    this.toast('Đã xảy ra lỗi hệ thống khi xóa câu hỏi: ' + err.message, 'error');
+                }
+            }
+
+            deleteUser(userId) {
+                if (!this.isSuperAdmin()) return;
+                let users = this.getUsers().filter(u => u.id !== userId);
+                this.saveUsers(users);
+                this.addAuditLog('Xóa người dùng', userId);
+                this.toast('Đã xóa tài khoản thành công.', 'success');
+                this.render();
+            }
+
+            showModal(htmlContent) {
+                const modal = document.getElementById('modalContainer');
+                modal.innerHTML = htmlContent;
+                modal.classList.remove('hidden');
+            }
+
+            closeModal() {
+                const modal = document.getElementById('modalContainer');
+                modal.classList.add('hidden');
+                modal.innerHTML = '';
+            }
+
+            toast(msg, type = 'info') {
+                const container = document.getElementById('toastContainer');
+                const toastEl = document.createElement('div');
+                const colors = {
+                    success: 'bg-emerald-600 text-white',
+                    error: 'bg-rose-600 text-white',
+                    warning: 'bg-amber-500 text-white',
+                    info: 'bg-slate-800 text-white'
+                };
+                toastEl.className = `px-4 py-3 rounded-2xl shadow-xl text-xs font-bold transition-all duration-300 transform translate-y-2 flex items-center space-x-2 ${colors[type] || colors.info} pointer-events-auto`;
+                toastEl.innerHTML = `
+                    <i class="fa-solid ${type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-circle-xmark' : 'fa-circle-info'} text-sm"></i>
+                    <span>${msg}</span>
+                `;
+                container.appendChild(toastEl);
+                setTimeout(() => {
+                    toastEl.classList.add('opacity-0', '-translate-y-2');
+                    setTimeout(() => toastEl.remove(), 300);
+                }, 3500);
+            }
+
+            showAuthModal(type = 'login') {
+                const isLogin = type === 'login';
+                const modalHtml = `
+                    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 relative shadow-2xl border border-slate-100">
+                        <button onclick="app.closeModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+
+                        <div class="text-center mb-6">
+                            <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                                <i class="fa-solid fa-user-doctor text-xl"></i>
+                            </div>
+                            <h3 class="text-xl font-black text-slate-900">${isLogin ? 'Đăng Nhập Tài Khoản' : 'Đăng Ký Tài Khoản Mới'}</h3>
+                            <p class="text-xs text-slate-500 mt-1">${isLogin ? 'Chào mừng bạn quay trở lại với Quiz Y Khoa' : 'Hệ thống tự động bảo mật & hỗ trợ sinh viên Y Khoa'}</p>
+                        </div>
+
+                        <form onsubmit="event.preventDefault(); ${isLogin ? 'app.handleLoginSubmit()' : 'app.handleRegisterSubmit()'};" class="space-y-4 text-xs">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Địa Chỉ Email:</label>
+                                <input type="email" id="authEmail" required placeholder="sinhvien@med.edu.vn" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Mật Khẩu:</label>
+                                <input type="password" id="authPassword" required placeholder="••••••••" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500">
+                            </div>
+
+                            ${!isLogin ? `
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Xác Nhận Mật Khẩu:</label>
+                                <input type="password" id="authConfirmPassword" required placeholder="••••••••" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            ` : ''}
+
+                            <button type="submit" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl shadow-md shadow-emerald-200 transition text-xs">
+                                ${isLogin ? 'Đăng Nhập' : 'Tạo Tài Khoản Mới'}
+                            </button>
+                        </form>
+
+                        <div class="mt-4 text-center border-t border-slate-100 pt-4 text-xs text-slate-500">
+                            ${isLogin ? `Chưa có tài khoản? <button onclick="app.showAuthModal('register')" class="text-emerald-600 font-bold hover:underline">Đăng ký ngay</button>` : `Đã có tài khoản? <button onclick="app.showAuthModal('login')" class="text-emerald-600 font-bold hover:underline">Đăng nhập</button>`}
+                        </div>
+                    </div>
+                `;
+                this.showModal(modalHtml);
+            }
+
+            handleLoginSubmit() {
+                const email = document.getElementById('authEmail').value.trim();
+                const pass = document.getElementById('authPassword').value;
+                this.closeModal();
+                this.login(email, pass);
+            }
+
+            handleRegisterSubmit() {
+                const email = document.getElementById('authEmail').value.trim();
+                const pass = document.getElementById('authPassword').value;
+                const confirmPass = document.getElementById('authConfirmPassword').value;
+                this.register(email, pass, confirmPass);
+            }
+
+            showProModal() {
+                const bank = this.getBankSettings();
+                const user = this.getCurrentUser();
+                const plan = this.state.selectedPlan || 'QUIZYK1T';
+                const isYear = plan === 'QUIZ1N';
+                const amount = isYear ? 49000 : 9000;
+                const planTitle = isYear ? 'Gói 1 Năm' : 'Gói 1 Tháng';
+                const refCode = (isYear ? 'QUIZ1N_' : 'QUIZYK1T_') + (user ? user.email.split('@')[0].toUpperCase() : 'FREE');
+
+                const modalHtml = `
+                    <div class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 relative shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+                        <button onclick="app.closeModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+
+                        <div class="text-center mb-6">
+                            <span class="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full inline-block mb-2">
+                                <i class="fa-solid fa-crown text-amber-500 mr-1"></i> Gói Cước Học Tập Không Giới Hạn
+                            </span>
+                            <h3 class="text-2xl font-black text-slate-900">Nâng Cấp Tài Khoản PRO</h3>
+                            <p class="text-xs text-slate-500 mt-1">Mở khóa toàn bộ ngân hàng câu hỏi Y Khoa và tính năng cao cấp</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                            <div onclick="app.state.selectedPlan = 'QUIZYK1T'; app.showProModal();" class="cursor-pointer transition-all ${!isYear ? 'border-2 border-emerald-500 bg-emerald-50/50 ring-2 ring-emerald-400/20' : 'border border-slate-200 bg-white hover:border-emerald-300'} p-4 rounded-2xl relative">
+                                <span class="absolute -top-2.5 right-3 ${!isYear ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'} text-[10px] font-bold px-2 py-0.5 rounded-full">Phổ biến</span>
+                                <div class="font-bold text-slate-800 text-sm">Gói 1 Tháng (QUIZYK1T)</div>
+                                <div class="text-xl font-black text-emerald-600 my-1">9.000 VNĐ</div>
+                                <div class="text-[11px] text-slate-500">Ôn tập đầy đủ các môn trong 30 ngày</div>
+                            </div>
+                            <div onclick="app.state.selectedPlan = 'QUIZ1N'; app.showProModal();" class="cursor-pointer transition-all ${isYear ? 'border-2 border-purple-500 bg-purple-50/50 ring-2 ring-purple-400/20' : 'border border-slate-200 bg-white hover:border-purple-300'} p-4 rounded-2xl relative">
+                                <span class="absolute -top-2.5 right-3 ${isYear ? 'bg-purple-600 text-white' : 'bg-slate-200 text-slate-600'} text-[10px] font-bold px-2 py-0.5 rounded-full">Tiết kiệm 60%</span>
+                                <div class="font-bold text-slate-800 text-sm">Gói 1 Năm (QUIZ1N)</div>
+                                <div class="text-xl font-black text-purple-600 my-1">49.000 VNĐ</div>
+                                <div class="text-[11px] text-slate-500">Tiết kiệm chi phí, học liên tục 365 ngày</div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 border border-slate-200 p-5 rounded-2xl text-center space-y-3 mb-6">
+                            <div class="text-xs font-bold text-slate-700">MÃ VIETQR TỰ ĐỘNG CHO <span class="text-purple-700 font-extrabold uppercase">${planTitle} (${amount.toLocaleString('vi-VN')} VNĐ)</span></div>
+                            <img src="${bank.customQrUrl || `https://img.vietqr.io/image/${bank.bankId}-${bank.accountNo}-compact2.png?amount=${amount}&addInfo=${refCode}&accountName=${encodeURIComponent(bank.accountName)}`}" alt="VietQR Payment" class="w-48 h-48 border border-slate-300 rounded-xl bg-white p-1 mx-auto shadow-sm">
+                            <div class="text-xs font-mono text-slate-600 space-y-1">
+                                <div>Ngân hàng: <strong>${bank.bankName}</strong></div>
+                                <div>Số TK: <strong class="text-emerald-700 font-bold">${bank.accountNo}</strong></div>
+                                <div>Chủ TK: <strong>${bank.accountName}</strong></div>
+                                <div>Số tiền: <strong class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">${amount.toLocaleString('vi-VN')} VNĐ</strong></div>
+                                <div>Nội dung CK: <strong class="text-purple-700 bg-purple-100 px-2 py-0.5 rounded">${refCode}</strong></div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4 border-t border-slate-100 pt-4">
+                            <div class="bg-emerald-50/60 p-4 rounded-2xl border border-emerald-200 text-xs space-y-2">
+                                <div class="font-bold text-emerald-900 flex items-center">
+                                    <i class="fa-solid fa-paper-plane text-emerald-600 mr-1.5"></i> Cách 1: Xác nhận đã chuyển khoản
+                                </div>
+                                <p class="text-slate-600 leading-snug">Sau khi quét mã thanh toán thành công, bấm nút bên dưới để gửi yêu cầu cho Admin đối chiếu ngân hàng và phê duyệt Pro.</p>
+                                <button onclick="app.requestProActivation()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm text-xs transition">
+                                    <i class="fa-solid fa-clock-rotate-left mr-1"></i> Tôi Đã Chuyển Khoản (Gửi Yêu Cầu Duyệt)
+                                </button>
+                            </div>
+
+                            <div class="bg-purple-50/60 p-4 rounded-2xl border border-purple-200 text-xs space-y-2">
+                                <div class="font-bold text-purple-900 flex items-center">
+                                    <i class="fa-solid fa-ticket text-purple-600 mr-1.5"></i> Cách 2: Nhập Mã Kích Hoạt PRO (Voucher)
+                                </div>
+                                <div class="flex gap-2">
+                                    <input type="text" id="activationCodeInput" placeholder="Ví dụ: PRO-MED-2026-X1" class="flex-grow px-3 py-2 border border-purple-300 rounded-xl uppercase font-mono text-xs focus:ring-2 focus:ring-purple-500">
+                                    <button onclick="app.activateWithCode()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs transition flex-shrink-0">
+                                        Kích Hoạt Ngay
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                this.showModal(modalHtml);
+            }
+
+            requestProActivation() {
+                const user = this.getCurrentUser();
+                if (!user) {
+                    this.toast('Vui lòng đăng nhập trước khi gửi yêu cầu kích hoạt!', 'warning');
+                    this.showAuthModal('login');
+                    return;
+                }
+
+                if (user.tier === 'pro') {
+                    this.toast('Tài khoản của bạn đã sở hữu gói PRO!', 'info');
+                    this.closeModal();
+                    return;
+                }
+
+                const payments = this.getPayments();
+                const hasPending = payments.some(p => p.userEmail === user.email && p.status === 'PENDING');
+                
+                if (hasPending) {
+                    this.toast('Bạn đã gửi yêu cầu trước đó. Vui lòng chờ Admin đối chiếu ngân hàng!', 'warning');
+                    this.closeModal();
+                    return;
+                }
+
+                const plan = this.state.selectedPlan || 'QUIZYK1T';
+                const isYear = plan === 'QUIZ1N';
+                const amount = isYear ? 49000 : 9000;
+                const planName = isYear ? 'Pro 1 Năm' : 'Pro 1 Tháng';
+                const refCode = (isYear ? 'QUIZ1N_' : 'QUIZYK1T_') + user.email.split('@')[0].toUpperCase();
+
+                payments.unshift({
+                    id: 'PAY' + Date.now(),
+                    userEmail: user.email,
+                    plan: planName,
+                    amount: amount,
+                    refCode: refCode,
+                    date: new Date().toISOString(),
+                    status: 'PENDING'
+                });
+
+                this.savePayments(payments);
+                this.addNotification(`Tài khoản ${user.email} vừa gửi yêu cầu duyệt ${planName}`);
+                this.addAuditLog('Gửi yêu cầu nâng cấp Pro', user.email);
+
+                this.closeModal();
+                this.toast(`Đã gửi yêu cầu kích hoạt gói ${planName}! Admin sẽ kiểm tra ngân hàng và duyệt sớm nhất.`, 'success');
+                this.render();
+            }
+
+            activateWithCode() {
+                const user = this.getCurrentUser();
+                if (!user) {
+                    this.toast('Vui lòng đăng nhập trước!', 'warning');
+                    this.showAuthModal('login');
+                    return;
+                }
+
+                const codeInput = document.getElementById('activationCodeInput')?.value.trim().toUpperCase();
+                if (!codeInput) {
+                    this.toast('Vui lòng nhập Mã Kích Hoạt!', 'warning');
+                    return;
+                }
+
+                const codes = this.getCodes();
+                const codeObj = codes.find(c => c.code === codeInput && !c.used);
+
+                if (!codeObj) {
+                    this.toast('Mã kích hoạt không đúng hoặc đã được sử dụng!', 'error');
+                    return;
+                }
+
+                codeObj.used = true;
+                codeObj.usedBy = user.email;
+                codeObj.usedAt = new Date().toISOString();
+                this.saveCodes(codes);
+
+                const users = this.getUsers();
+                const u = users.find(x => x.id === user.id);
+                if (u) {
+                    u.tier = 'pro';
+                    this.saveUsers(users);
+                    user.tier = 'pro';
+                    this.setCurrentUser(user);
+                }
+
+                const isYear = codeObj.plan === 'QUIZ1N';
+                const planName = isYear ? 'Pro 1 Năm' : 'Pro 1 Tháng';
+                const amount = isYear ? 49000 : 9000;
+
+                const payments = this.getPayments();
+                payments.unshift({
+                    id: 'PAY' + Date.now(),
+                    userEmail: user.email,
+                    plan: planName + ' (Mã Giftcode)',
+                    amount: amount,
+                    refCode: codeInput,
+                    date: new Date().toISOString(),
+                    status: 'SUCCESS'
+                });
+                this.savePayments(payments);
+
+                this.addAuditLog('Kích hoạt Pro bằng Mã Giftcode', `${user.email} (${codeInput})`);
+                this.closeModal();
+                this.toast(`Kích hoạt thành công gói ${planName} qua Mã Kích Hoạt!`, 'success');
+                this.render();
+            }
+
+            adminApprovePayment(payId) {
+                if (!this.isAdmin()) return;
+
+                const payments = this.getPayments();
+                const pay = payments.find(p => p.id === payId);
+
+                if (pay && pay.status === 'PENDING') {
+                    pay.status = 'SUCCESS';
+                    pay.approvedBy = this.getCurrentUser()?.email;
+                    pay.approvedAt = new Date().toISOString();
+                    this.savePayments(payments);
+
+                    const users = this.getUsers();
+                    const u = users.find(x => x.email === pay.userEmail);
+                    if (u) {
+                        u.tier = 'pro';
+                        this.saveUsers(users);
+
+                        const currentU = this.getCurrentUser();
+                        if (currentU && currentU.id === u.id) {
+                            currentU.tier = 'pro';
+                            this.setCurrentUser(currentU);
+                        }
+                    }
+
+                    this.addAuditLog('Admin phê duyệt Pro thành công', pay.userEmail);
+                    this.toast(`Đã duyệt kích hoạt PRO cho sinh viên ${pay.userEmail}!`, 'success');
+                    this.render();
+                }
+            }
+
+            adminRejectPayment(payId) {
+                if (!this.isAdmin()) return;
+
+                const payments = this.getPayments();
+                const pay = payments.find(p => p.id === payId);
+
+                if (pay && pay.status === 'PENDING') {
+                    pay.status = 'REJECTED';
+                    pay.rejectedBy = this.getCurrentUser()?.email;
+                    this.savePayments(payments);
+
+                    this.addAuditLog('Admin từ chối giao dịch Pro', pay.userEmail);
+                    this.toast(`Đã từ chối giao dịch của ${pay.userEmail}`, 'info');
+                    this.render();
+                }
+            }
+
+            navigate(view, params = {}) {
+                this.state.currentView = view;
+                if (params.subjectId) this.state.selectedSubjectId = params.subjectId;
+                if (params.chapterId) {
+                    this.state.selectedChapterId = params.chapterId;
+                    this.state.currentQuestionIndex = 0;
+                    this.state.userAnswers = {};
+                    this.state.showOptionExplanations = false;
+                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                this.render();
+            }
+
+            adminChangeUserRole(userId) {
+                if (!this.isSuperAdmin()) return;
+                let users = this.getUsers();
+                const u = users.find(x => x.id === userId);
+                if (u && u.role !== 'super_admin') {
+                    u.role = u.role === 'admin' ? 'student' : 'admin';
+                    this.saveUsers(users);
+                    this.addAuditLog('Thay đổi vai trò người dùng', `${u.email} -> ${u.role}`);
+                    this.toast(`Đã đổi quyền cho ${u.email} thành ${u.role.toUpperCase()}`, 'success');
+                    this.render();
+                }
+            }
+
+            showAddSubjectModal() {
+                if (!this.isAdmin()) return;
+                const modalHtml = `
+                    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 relative shadow-2xl border border-slate-100">
+                        <button onclick="app.closeModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        <h3 class="text-lg font-bold text-slate-900 mb-4">Thêm Môn Học Mới (Cloud Sync)</h3>
+                        <form onsubmit="event.preventDefault(); app.handleAddSubjectSubmit();" class="space-y-3 text-xs">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Tên Môn Học:</label>
+                                <input type="text" id="newSbjName" required placeholder="Ví dụ: Dược Lý Học 2" class="w-full px-3 py-2 border border-slate-300 rounded-xl">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Mã Viết Tắt:</label>
+                                <input type="text" id="newSbjCode" required placeholder="DL2" class="w-full px-3 py-2 border border-slate-300 rounded-xl">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Mô Tả Ngắn:</label>
+                                <textarea id="newSbjDesc" rows="2" placeholder="Mô tả tóm tắt môn học..." class="w-full px-3 py-2 border border-slate-300 rounded-xl"></textarea>
+                            </div>
+                            <button type="submit" class="w-full py-2.5 bg-emerald-600 text-white font-bold rounded-xl shadow transition">Lưu Môn Học</button>
+                        </form>
+                    </div>
+                `;
+                this.showModal(modalHtml);
+            }
+
+            handleAddSubjectSubmit() {
+                const name = document.getElementById('newSbjName').value.trim();
+                const code = document.getElementById('newSbjCode').value.trim();
+                const desc = document.getElementById('newSbjDesc').value.trim();
+
+                const subjects = this.getSubjects() || [];
+                const newSbj = {
+                    id: 'sbj_' + Date.now(),
+                    name,
+                    code,
+                    icon: 'fa-book-medical',
+                    color: 'from-emerald-500 to-teal-500',
+                    bgLight: 'bg-emerald-50',
+                    textColor: 'text-emerald-600',
+                    description: desc,
+                    chapters: [
+                        { id: 'ch_' + Date.now(), name: 'Chương 1: Đại cương & Lý thuyết', count: 0 }
+                    ]
+                };
+
+                subjects.push(newSbj);
+                this.saveSubjects(subjects);
+                this.addNotification(`Đã thêm môn học mới: ${name}`);
+                this.addAuditLog('Thêm môn học mới', name);
+                this.closeModal();
+                this.toast('Đã tạo môn học và đồng bộ Cloud thành công!', 'success');
+                this.render();
+            }
+
+            showNotebookLMModal() {
+                if (!this.isAdmin()) return;
+
+                const subjects = this.getSubjects();
+                if (subjects.length === 0) {
+                    this.toast('Vui lòng tạo môn học trước!', 'warning');
+                    return;
+                }
+
+                const defaultSubjectId = this.state.selectedSubjectId || subjects[0].id;
+                const defaultSubject = subjects.find(s => s.id === defaultSubjectId) || subjects[0];
+                const defaultChapters = defaultSubject.chapters || [];
+                const defaultChapterId = this.state.selectedChapterId || (defaultChapters[0] ? defaultChapters[0].id : '');
+
+                const modalHtml = `
+                    <div class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 relative shadow-2xl border border-slate-100">
+                        <button onclick="app.closeModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        
+                        <div class="flex items-center space-x-3 mb-4">
+                            <div class="w-10 h-10 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xl">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-extrabold text-slate-900">Import Câu Hỏi Từ NotebookLM</h3>
+                                <p class="text-xs text-slate-500">Đồng bộ câu hỏi trực tiếp lên Cloud Real-time Database</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 p-4 bg-purple-50/60 border border-purple-200/80 rounded-2xl">
+                            <div>
+                                <label class="block font-bold text-purple-900 text-xs mb-1">1. Chọn Môn Học:</label>
+                                <select id="notebookSubjectSelect" onchange="app.handleNotebookSubjectChange(this.value)" class="w-full px-3 py-2 bg-white border border-purple-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500 text-slate-800">
+                                    ${subjects.map(s => `<option value="${s.id}" ${s.id === defaultSubjectId ? 'selected' : ''}>${s.name} (${s.code})</option>`).join('')}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block font-bold text-purple-900 text-xs mb-1">2. Chọn Chương Học Đích:</label>
+                                <select id="notebookChapterSelect" class="w-full px-3 py-2 bg-white border border-purple-300 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-purple-500 text-slate-800">
+                                    ${defaultChapters.map(c => `<option value="${c.id}" ${c.id === defaultChapterId ? 'selected' : ''}>${c.name} (${c.count || 0}/500 câu)</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="block font-bold text-slate-700 text-xs mb-1">Dán dữ liệu JSON xuất từ NotebookLM:</label>
+                            <textarea id="notebookJsonInput" rows="7" placeholder='[&#10;  {&#10;    "question": "Trọng lượng trung bình của mỗi quả thận ở người trưởng thành?",&#10;    "options": [&#10;      {"key": "A", "text": "150 gram", "correct": true},&#10;      {"key": "B", "text": "160 gram", "correct": false}&#10;    ],&#10;    "generalExplanation": "Giải thích chi tiết..."&#10;  }&#10;]' class="w-full px-3 py-2 border border-slate-300 rounded-xl font-mono text-xs focus:ring-2 focus:ring-purple-500"></textarea>
+                        </div>
+
+                        <button onclick="app.handleNotebookLMImport()" class="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-200 transition flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-cloud-arrow-down text-sm"></i>
+                            <span>Xác Nhận Import Và Đồng Bộ Cloud</span>
+                        </button>
+                    </div>
+                `;
+                this.showModal(modalHtml);
+            }
+
+            handleNotebookSubjectChange(selectedSubjectId) {
+                const subjects = this.getSubjects();
+                const sbj = subjects.find(s => s.id === selectedSubjectId);
+                const chapterSelect = document.getElementById('notebookChapterSelect');
+
+                if (sbj && sbj.chapters && chapterSelect) {
+                    if (sbj.chapters.length === 0) {
+                        chapterSelect.innerHTML = `<option value="">-- Chưa có chương nào --</option>`;
+                    } else {
+                        chapterSelect.innerHTML = sbj.chapters.map(c => `<option value="${c.id}">${c.name} (${c.count || 0}/500 câu)</option>`).join('');
+                    }
+                }
+            }
+
+            handleNotebookLMImport() {
+                const targetChapterId = document.getElementById('notebookChapterSelect')?.value;
+                if (!targetChapterId) {
+                    this.toast('Vui lòng chọn hoặc tạo Chương học trước khi import!', 'warning');
+                    return;
+                }
+
+                const val = document.getElementById('notebookJsonInput').value.trim();
+                if (!val) {
+                    this.toast('Vui lòng nhập dữ liệu câu hỏi từ NotebookLM!', 'warning');
+                    return;
+                }
+
+                try {
+                    let parsed = JSON.parse(val);
+                    if (!Array.isArray(parsed)) {
+                        parsed = [parsed];
+                    }
+
+                    if (parsed.length === 0) {
+                        this.toast('Không tìm thấy dữ liệu câu hỏi hợp lệ trong JSON!', 'warning');
+                        return;
+                    }
+
+                    const questions = this.getQuestions() || [];
+                    const subjects = this.getSubjects();
+
+                    let targetSubject = null;
+                    let targetChapter = null;
+
+                    for (const s of subjects) {
+                        const ch = s.chapters.find(c => c.id === targetChapterId);
+                        if (ch) {
+                            targetSubject = s;
+                            targetChapter = ch;
+                            break;
+                        }
+                    }
+
+                    if (!targetChapter) {
+                        this.toast('Không tìm thấy Chương học được chọn!', 'error');
+                        return;
+                    }
+
+                    const currentCount = questions.filter(q => q.chapterId === targetChapterId).length;
+                    if (currentCount + parsed.length > 500) {
+                        this.toast(`Chương này hiện có ${currentCount} câu. Việc thêm ${parsed.length} câu sẽ vượt quá giới hạn 500 câu/chương!`, 'error');
+                        return;
+                    }
+
+                    parsed.forEach((q, idx) => {
+                        questions.push({
+                            id: 'q_import_' + Date.now() + '_' + idx,
+                            chapterId: targetChapterId,
+                            question: q.question || 'Câu hỏi nhập từ NotebookLM',
+                            type: 'single',
+                            options: q.options || [
+                                { key: 'A', text: 'Đáp án A', correct: true, exp: '' },
+                                { key: 'B', text: 'Đáp án B', correct: false, exp: '' },
+                                { key: 'C', text: 'Đáp án C', correct: false, exp: '' },
+                                { key: 'D', text: 'Đáp án D', correct: false, exp: '' }
+                            ],
+                            generalExplanation: q.generalExplanation || q.explanation || 'Giải thích nhập từ NotebookLM.'
+                        });
+                    });
+
+                    targetChapter.count = (targetChapter.count || 0) + parsed.length;
+
+                    this.saveQuestions(questions);
+                    this.saveSubjects(subjects);
+
+                    this.addNotification(`Đã thêm ${parsed.length} câu hỏi mới vào chương ${targetChapter.name}`);
+                    this.addAuditLog('Import câu hỏi từ NotebookLM', `${parsed.length} câu vào chương ${targetChapter.name}`);
+                    this.closeModal();
+                    this.toast(`Đã đồng bộ thành công ${parsed.length} câu hỏi lên Cloud!`, 'success');
+                    this.render();
+                } catch (e) {
+                    console.error('NotebookLM Import Error:', e);
+                    this.toast('Định dạng JSON từ NotebookLM không hợp lệ. Vui lòng kiểm tra lại!', 'error');
+                }
+            }
+
+            renderNavUserActions() {
+                const container = document.getElementById('navUserActions');
+                const user = this.getCurrentUser();
+
+                const navSearchInput = document.getElementById('globalNavSearch');
+                if (navSearchInput && navSearchInput.value !== this.state.searchQuery) {
+                    navSearchInput.value = this.state.searchQuery;
+                }
+
+                if (!user) {
+                    container.innerHTML = `
+                        <button onclick="app.showAuthModal('login')" class="px-4 py-2 text-xs font-bold text-slate-700 hover:text-emerald-600 transition">Đăng Nhập</button>
+                        <button onclick="app.showAuthModal('register')" class="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-full shadow-md shadow-emerald-100 hover:bg-emerald-700 transition">Đăng Ký</button>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        ${user.tier === 'pro' ? `
+                            <span class="px-2.5 py-1 bg-amber-100 text-amber-800 text-[11px] font-bold rounded-full flex items-center">
+                                <i class="fa-solid fa-crown text-amber-500 mr-1"></i> PRO
+                            </span>
+                        ` : `
+                            <button onclick="app.showProModal()" class="px-2.5 py-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 text-[11px] font-bold rounded-full transition">
+                                Nâng PRO (9k)
+                            </button>
+                        `}
+
+                        ${this.isAdmin() ? `
+                            <button onclick="app.navigate('admin')" class="px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded-xl hover:bg-slate-900 transition flex items-center space-x-1">
+                                <i class="fa-solid fa-user-shield text-xs"></i>
+                                <span class="hidden sm:inline">Admin</span>
+                            </button>
+                        ` : ''}
+
+                        <button onclick="app.navigate('profile')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center space-x-1">
+                            <i class="fa-solid fa-user text-xs"></i>
+                            <span class="hidden sm:inline">${user.email.split('@')[0]}</span>
+                        </button>
+                        
+                        <button onclick="app.logout()" class="p-1.5 text-slate-400 hover:text-rose-600 transition" title="Đăng xuất">
+                            <i class="fa-solid fa-power-off"></i>
+                        </button>
+                    </div>
+                `;
+            }
+
+            renderHome() {
+                const subjects = this.getSubjects() || [];
+
+                return `
+                    <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 rounded-3xl p-6 sm:p-10 text-white mb-8 shadow-xl relative overflow-hidden">
+                        <div class="relative z-10 max-w-2xl">
+                            <span class="px-3 py-1 bg-white/20 text-white text-xs font-bold rounded-full backdrop-blur-md mb-3 inline-block">Y Khoa Chuyên Nghiệp • Firebase Cloud Sync</span>
+                            <h1 class="text-2xl sm:text-4xl font-black leading-tight mb-3">Ôn Thi & Luyện Trắc Nghiệm Y Khoa Toàn Diện</h1>
+                            <p class="text-xs sm:text-sm text-emerald-100 mb-6 leading-relaxed">Đầy đủ các môn Giải phẫu, Sinh lý, Dược lý, Hóa sinh... với hệ thống đồng bộ đám mây thời gian thực.</p>
+                            
+                            <div class="relative max-w-lg">
+                                <input type="text" id="heroSearchInput" value="${this.state.searchQuery}" onkeyup="app.handleSearchInput(this.value)" placeholder="Gõ tên môn học (ví dụ: Giải Phẫu, Dược Lý)..." class="w-full pl-10 pr-10 py-3 text-xs sm:text-sm bg-white text-slate-800 rounded-2xl shadow-lg focus:outline-none font-medium">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-400 text-sm"></i>
+                                ${this.state.searchQuery ? `
+                                    <button onclick="app.clearSearch()" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600">
+                                        <i class="fa-solid fa-circle-xmark"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-6 flex justify-between items-center">
+                        <h2 class="text-xl font-extrabold text-slate-900 flex items-center space-x-2">
+                            <i class="fa-solid fa-book-medical text-emerald-600"></i>
+                            <span>Danh Mục Môn Học (Cloud Sync Updated)</span>
+                        </h2>
+                        <span id="subjectCountDisplay" class="text-xs text-slate-500 font-medium">${subjects.length} môn học</span>
+                    </div>
+
+                    <div id="subjectsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                        ${subjects.map(s => `
+                            <div onclick="app.navigate('chapter_list', {subjectId: '${s.id}'})" data-name="${s.name.toLowerCase()}" data-code="${s.code.toLowerCase()}" data-desc="${(s.description||'').toLowerCase()}" class="subject-card bg-white rounded-3xl p-6 border border-slate-200/80 hover:border-emerald-400 card-hover cursor-pointer relative flex flex-col justify-between ${s.bgLight || 'bg-slate-50'}">
+                                <div>
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr ${s.color || 'from-emerald-500 to-teal-500'} text-white flex items-center justify-center text-xl shadow-md">
+                                            <i class="fa-solid ${s.icon || 'fa-book-medical'}"></i>
+                                        </div>
+                                        <span class="px-2.5 py-1 bg-white/80 font-black text-xs rounded-xl shadow-sm text-slate-700">${s.code}</span>
+                                    </div>
+                                    <h3 class="text-lg font-extrabold text-slate-900 mb-1">${s.name}</h3>
+                                    <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-4">${s.description}</p>
+                                </div>
+                                <div class="flex items-center justify-between pt-4 border-t border-slate-200/50 text-xs font-bold ${s.textColor || 'text-emerald-600'}">
+                                    <span>${s.chapters ? s.chapters.length : 0} chương bài tập</span>
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            renderSearch() {
+                return this.renderHome();
+            }
+
+            renderProfile() {
+                const user = this.getCurrentUser();
+                if (!user) return this.renderHome();
+
+                return `
+                    <div class="max-w-xl mx-auto bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+                        <div class="text-center">
+                            <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 font-black text-2xl flex items-center justify-center mx-auto mb-2">
+                                ${user.email[0].toUpperCase()}
+                            </div>
+                            <h2 class="text-xl font-bold text-slate-900">${user.email}</h2>
+                            <span class="px-3 py-1 rounded-full text-xs font-bold ${user.tier === 'pro' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'} mt-1 inline-block">
+                                Gói Cước: ${user.tier.toUpperCase()}
+                            </span>
+                        </div>
+
+                        <div class="border-t border-b border-slate-100 py-4 space-y-3 text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">Vai trò tài khoản:</span>
+                                <strong class="text-slate-800 uppercase">${user.role}</strong>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">Ngày tạo:</span>
+                                <strong class="text-slate-800">${new Date(user.createdAt || Date.now()).toLocaleDateString('vi-VN')}</strong>
+                            </div>
+                        </div>
+
+                        ${user.tier !== 'pro' ? `
+                            <button onclick="app.showProModal()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-xs rounded-xl shadow-md">
+                                Nâng Cấp Lên Tài Khoản PRO
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
+            showAddQuestionModal(targetChapterId = null) {
+                if (!this.isAdmin()) {
+                    this.toast('Chỉ Admin mới có quyền thêm câu hỏi!', 'error');
+                    return;
+                }
+
+                const subjects = this.getSubjects() || [];
+                const allChapters = subjects.flatMap(s => (s.chapters || []).map(c => ({ ...c, subjectName: s.name })));
+                
+                if (allChapters.length === 0) {
+                    this.toast('Vui lòng tạo môn học và chương trước khi thêm câu hỏi!', 'warning');
+                    return;
+                }
+
+                const defaultCh = targetChapterId || allChapters[0].id;
+
+                const modalHtml = `
+                    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 relative shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
+                        <button onclick="app.closeModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+
+                        <div class="mb-4">
+                            <h3 class="text-xl font-bold text-slate-900">Thêm Câu Hỏi Mới Thủ Công (Cloud Sync)</h3>
+                            <p class="text-xs text-slate-500 mt-1">Câu hỏi mới sẽ được đồng bộ ngay lập tức lên Cloud cho tất cả thiết bị.</p>
+                        </div>
+
+                        <form onsubmit="event.preventDefault(); app.handleAddQuestionSubmit();" class="space-y-4 flex-grow overflow-y-auto pr-1 text-xs">
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Chọn Chương Bài Tập:</label>
+                                <select id="manualQuestionChapter" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500">
+                                    ${allChapters.map(c => `<option value="${c.id}" ${c.id === defaultCh ? 'selected' : ''}>[${c.subjectName}] - ${c.name}</option>`).join('')}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block font-bold text-slate-700 mb-1">Nội dung câu hỏi Y Khoa:</label>
+                                <textarea id="manualQuestionText" rows="3" required placeholder="Ví dụ: Trọng lượng trung bình của mỗi quả thận ở người trưởng thành là bao nhiêu?" class="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500"></textarea>
+                            </div>
+
+                            <div class="space-y-2 border-t border-b border-slate-100 py-3">
+                                <label class="block font-bold text-slate-700">Các đáp án lựa chọn (Đánh dấu đáp án đúng):</label>
+
+                                <div class="flex items-center space-x-2">
+                                    <input type="radio" name="correctOpt" value="A" checked class="w-4 h-4 text-emerald-600">
+                                    <span class="font-bold text-slate-700 w-6">A.</span>
+                                    <input type="text" id="optA_text" required placeholder="Nội dung đáp án A" class="flex-grow px-3 py-1.5 border border-slate-300 rounded-xl">
+                                </div>
+                                <input type="text" id="optA_exp" placeholder="Giải thích riêng đáp án A (tùy chọn)" class="w-full px-3 py-1 text-[11px] bg-slate-50 border border-slate-200 rounded-lg ml-8">
+
+                                <div class="flex items-center space-x-2 pt-2">
+                                    <input type="radio" name="correctOpt" value="B" class="w-4 h-4 text-emerald-600">
+                                    <span class="font-bold text-slate-700 w-6">B.</span>
+                                    <input type="text" id="optB_text" required placeholder="Nội dung đáp án B" class="flex-grow px-3 py-1.5 border border-slate-300 rounded-xl">
+                                </div>
+                                <input type="text" id="optB_exp" placeholder="Giải thích riêng đáp án B (tùy chọn)" class="w-full px-3 py-1 text-[11px] bg-slate-50 border border-slate-200 rounded-lg ml-8">
+
+                                <div class="flex items-center space-x-2 pt-2">
+                                    <input type="radio" name="correctOpt" value="C" class="w-4 h-4 text-emerald-600">
+                                    <span class="font-bold text-slate-700 w-6">C.</span>
+                                    <input type="text" id="optC_text" required placeholder="Nội dung đáp án C" class="flex-grow px-3 py-1.5 border border-slate-300 rounded-xl">
+                                </div>
+                                <input type="text" id="optC_exp" placeholder="Giải thích riêng đáp án C (tùy chọn)" class="w-full px-3 py-1 text-[11px] bg-slate-50 border border-slate-200 rounded-lg ml-8">
+
+                                <div class="flex items-center space-x-2 pt-2">
+                                    <input type="radio" name="correctOpt" value="D" class="w-4 h-4 text-emerald-600">
+                                    <span class="font-bold text-slate-700 w-6">D.</span>
+                                    <input type="text" id="optD_text" required placeholder="Nội dung đáp án D" class="flex-grow px-3 py-1.5 border border-slate-300 rounded-xl">
+                                </div>
+                                <input type="text" id="optD_exp" placeholder="Giải thích riêng đáp án D (tùy chọn)" class="w-full px-3 py-1 text-[11px] bg-slate-50 border border-slate-200 rounded-lg ml-8">
+                            </div>
+
+                            <div>
+                                <label class="block font-bold text-purple-700 mb-1">Giải thích tham khảo chung (Khung màu tím):</label>
+                                <textarea id="manualQuestionGeneralExp" rows="2" placeholder="Ví dụ: Thận người trưởng thành có trọng lượng trung bình khoảng 150 gram..." class="w-full px-3 py-2 border border-purple-200 rounded-xl bg-purple-50/50 focus:ring-2 focus:ring-purple-500"></textarea>
+                            </div>
+
+                            <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition">
+                                <i class="fa-solid fa-plus-circle mr-1"></i> Lưu & Đồng Bộ Lên Cloud
+                            </button>
+                        </form>
+                    </div>
+                `;
+                this.showModal(modalHtml);
+            }
+
+            handleAddQuestionSubmit() {
+                const chapterId = document.getElementById('manualQuestionChapter').value;
+                const questions = this.getQuestions() || [];
+                
+                const chapterQuestionCount = questions.filter(q => q.chapterId === chapterId).length;
+                if (chapterQuestionCount >= 500) {
+                    this.toast('Chương này đã đạt giới hạn tối đa 500 câu hỏi! Không thể thêm mới.', 'error');
+                    return;
+                }
+
+                const questionText = document.getElementById('manualQuestionText').value.trim();
+                const correctKey = document.querySelector('input[name="correctOpt"]:checked').value;
+                const generalExp = document.getElementById('manualQuestionGeneralExp').value.trim() || 'Giải thích chuẩn y khoa.';
+
+                const options = [
+                    { key: 'A', text: document.getElementById('optA_text').value.trim(), correct: correctKey === 'A', exp: document.getElementById('optA_exp').value.trim() || 'Đáp án A' },
+                    { key: 'B', text: document.getElementById('optB_text').value.trim(), correct: correctKey === 'B', exp: document.getElementById('optB_exp').value.trim() || 'Đáp án B' },
+                    { key: 'C', text: document.getElementById('optC_text').value.trim(), correct: correctKey === 'C', exp: document.getElementById('optC_exp').value.trim() || 'Đáp án C' },
+                    { key: 'D', text: document.getElementById('optD_text').value.trim(), correct: correctKey === 'D', exp: document.getElementById('optD_exp').value.trim() || 'Đáp án D' }
+                ];
+
+                const newQ = {
+                    id: 'q_' + Date.now(),
+                    chapterId: chapterId,
+                    question: questionText,
+                    type: 'single',
+                    options: options,
+                    generalExplanation: generalExp
+                };
+
+                questions.push(newQ);
+                this.saveQuestions(questions);
+
+                const subjects = this.getSubjects();
+                subjects.forEach(s => {
+                    if (s.chapters) {
+                        const ch = s.chapters.find(c => c.id === chapterId);
+                        if (ch) ch.count = (ch.count || 0) + 1;
+                    }
+                });
+                this.saveSubjects(subjects);
+
+                this.addNotification(`Đã thêm câu hỏi mới lên Cloud`);
+                this.addAuditLog('Thêm câu hỏi thủ công', `Chương ID: ${chapterId}`);
+                this.closeModal();
+                this.toast(`Thêm câu hỏi và đồng bộ Cloud thành công! (${chapterQuestionCount + 1}/500 câu)`, 'success');
+                this.render();
+            }
+
+            renderChapterList() {
+                const subjectId = this.state.selectedSubjectId;
+                const subjects = this.getSubjects() || [];
+                const subject = subjects.find(s => s.id === subjectId) || subjects[0];
+
+                if (!subject) {
+                    return `<div class="text-center py-10">Không tìm thấy môn học!</div>`;
+                }
+
+                return `
+                    <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="flex items-center space-x-3">
+                            <button onclick="app.navigate('home')" class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition shadow-sm">
+                                <i class="fa-solid fa-arrow-left"></i>
+                            </button>
+                            <div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 font-extrabold text-[11px] rounded-full uppercase">${subject.code}</span>
+                                    <h1 class="text-2xl font-extrabold text-slate-900">${subject.name}</h1>
+                                </div>
+                                <p class="text-xs text-slate-500 mt-0.5">${subject.description}</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center space-x-2">
+                            ${this.isAdmin() ? `
+                            <button onclick="app.showAddChapterModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-md flex items-center space-x-2 transition">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>+ Thêm Chương Mới</span>
+                            </button>
+                            <button onclick="app.showAddQuestionModal()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center space-x-2 transition">
+                                <i class="fa-solid fa-plus-circle"></i>
+                                <span>+ Thêm Câu Hỏi</span>
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                         ${(subject.chapters || []).length === 0 ? `
+                            <div class="bg-white rounded-2xl p-8 text-center text-slate-400 border border-slate-200">
+                                Môn học này chưa có chương nào. Hãy bấm <strong>+ Thêm Chương Mới</strong> phía trên để bắt đầu!
+                            </div>
+                        ` : (subject.chapters || []).map((ch, idx) => `
+                            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 hover:border-emerald-400 card-hover flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                                <div class="flex items-start space-x-4">
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 font-black text-sm flex items-center justify-center flex-shrink-0 border border-emerald-100">
+                                        ${idx + 1}
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-slate-800 text-base hover:text-emerald-700 cursor-pointer" onclick="app.navigate('quiz', {chapterId: '${ch.id}'})">${ch.name}</h3>
+                                        <div class="flex items-center space-x-3 text-xs text-slate-500 mt-1">
+                                            <span class="px-2 py-0.5 bg-slate-100 rounded-md font-medium text-slate-600">Đề theo bài</span>
+                                            <span class="${(ch.count || 0) >= 500 ? 'text-rose-600 font-bold' : 'text-slate-500'}">
+                                                <i class="fa-solid fa-list-check mr-1 text-slate-400"></i>${ch.count || 0} / 500 Câu hỏi
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center space-x-2 align-self-end sm:align-self-center">
+                                    ${this.isAdmin() ? `
+                                    <button onclick="app.showAddQuestionModal('${ch.id}')" title="Thêm câu hỏi vào chương này" class="px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-bold rounded-lg transition border border-emerald-200 flex items-center space-x-1">
+                                        <i class="fa-solid fa-plus"></i>
+                                        <span>Thêm câu hỏi</span>
+                                    </button>
+                                    <button onclick="app.deleteChapter('${subject.id}', '${ch.id}')" title="Xóa chương này" class="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                    ` : ''}
+                                    <button onclick="app.navigate('quiz', {chapterId: '${ch.id}'})" class="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-200 flex items-center space-x-2 transition">
+                                        <span>Bắt Đầu Làm Bài</span>
+                                        <i class="fa-solid fa-play text-[10px]"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            renderQuiz() {
+                const chapterId = this.state.selectedChapterId;
+                const questions = (this.getQuestions() || []).filter(q => q.chapterId === chapterId);
+                const user = this.getCurrentUser();
+                const isPro = user && user.tier === 'pro';
+
+                if (questions.length === 0) {
+                    return `
+                        <div class="bg-white rounded-3xl p-10 text-center border border-slate-200 max-w-lg mx-auto">
+                            <i class="fa-solid fa-folder-open text-4xl text-slate-300 mb-3"></i>
+                            <h3 class="font-bold text-slate-700 text-lg">Chương này chưa có câu hỏi!</h3>
+                            <p class="text-xs text-slate-500 mt-1 mb-6">Admin có thể thêm câu hỏi thủ công hoặc Import từ NotebookLM.</p>
+                            <button onclick="app.navigate('home')" class="px-5 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-md">Quay Về Trang Chủ</button>
+                        </div>
+                    `;
+                }
+
+                const currentIdx = this.state.currentQuestionIndex;
+                if (!isPro && currentIdx >= 5) {
+                    return `
+                        <div class="bg-white rounded-3xl p-8 text-center border border-amber-200 max-w-xl mx-auto shadow-xl">
+                            <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                                <i class="fa-solid fa-crown text-3xl"></i>
+                            </div>
+                            <h2 class="text-xl font-bold text-slate-900">Bạn Đã Hoàn Thành 5 Câu Hỏi Miễn Phí!</h2>
+                            <p class="text-xs text-slate-600 mt-2 mb-6 leading-relaxed">Tài khoản Miễn Phí bị giới hạn tối đa 5 câu hỏi/chương. Hãy nâng cấp gói PRO chỉ từ <strong>9.000 VNĐ</strong> để làm không giới hạn hàng ngàn câu hỏi Y Khoa nhé!</p>
+                            
+                            <div class="flex justify-center space-x-3">
+                                <button onclick="app.restartQuiz()" class="px-4 py-2.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-200 transition">Làm Lại 5 Câu Đầu</button>
+                                <button onclick="app.showProModal()" class="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-amber-200 hover:opacity-95 transition">Nâng Cấp PRO Ngay</button>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const currentQ = questions[currentIdx];
+                const selectedKey = this.state.userAnswers[currentQ.id];
+                const hasAnswered = selectedKey !== undefined;
+                const isCorrect = hasAnswered && currentQ.options.find(o => o.key === selectedKey)?.correct;
+
+                return `
+                    <div class="max-w-3xl mx-auto">
+                        <div class="bg-white rounded-2xl p-4 border border-slate-200/80 mb-6 flex items-center justify-between shadow-sm">
+                            <div class="flex items-center space-x-3">
+                                <button onclick="app.navigate('home')" class="text-slate-400 hover:text-slate-600 transition">
+                                    <i class="fa-solid fa-xmark text-lg"></i>
+                                </button>
+                                <span class="text-xs font-bold text-slate-700">Câu ${currentIdx + 1} / ${isPro ? questions.length : Math.min(questions.length, 5)}</span>
+                            </div>
+                            
+                            <div class="flex items-center space-x-2">
+                                ${this.isAdmin() ? `
+                                    <button onclick="app.deleteQuestion('${currentQ.id}')" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl transition flex items-center space-x-1 border border-rose-200">
+                                        <i class="fa-solid fa-trash"></i>
+                                        <span>Xóa câu này</span>
+                                    </button>
+                                ` : ''}
+                                <button onclick="app.restartQuiz()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition flex items-center space-x-1.5">
+                                    <i class="fa-solid fa-rotate-left"></i>
+                                    <span>Làm lại từ đầu</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm mb-6">
+                            <h2 class="text-base sm:text-lg font-extrabold text-slate-800 leading-snug mb-6">${currentQ.question}</h2>
+
+                            <div class="space-y-3">
+                                ${currentQ.options.map(opt => {
+                                    let cardStyle = "bg-white border-slate-200 hover:border-emerald-400 text-slate-700";
+                                    let iconHtml = "";
+
+                                    if (hasAnswered) {
+                                        if (opt.key === selectedKey) {
+                                            if (opt.correct) {
+                                                cardStyle = "bg-emerald-50 border-emerald-500 text-emerald-900 font-bold ring-2 ring-emerald-400/30";
+                                                iconHtml = `<i class="fa-solid fa-circle-check text-emerald-600 text-lg ml-auto"></i>`;
+                                            } else {
+                                                cardStyle = "bg-rose-50 border-rose-500 text-rose-900 font-bold ring-2 ring-rose-400/30";
+                                                iconHtml = `<i class="fa-solid fa-circle-xmark text-rose-600 text-lg ml-auto"></i>`;
+                                            }
+                                        } else if (opt.correct) {
+                                            cardStyle = "bg-emerald-50/60 border-emerald-400 text-emerald-800 font-medium";
+                                            iconHtml = `<span class="text-[11px] px-2 py-0.5 bg-emerald-600 text-white font-bold rounded-md ml-auto">Đáp án đúng</span>`;
+                                        }
+                                    }
+
+                                    return `
+                                        <div onclick="if(!${hasAnswered}) { app.state.userAnswers['${currentQ.id}'] = '${opt.key}'; app.render(); }" class="p-4 rounded-2xl border ${cardStyle} transition-all cursor-pointer flex items-center justify-between group">
+                                            <div class="flex items-center space-x-3">
+                                                <span class="w-8 h-8 rounded-xl bg-slate-100 group-hover:bg-emerald-100 group-hover:text-emerald-700 font-bold text-xs flex items-center justify-center border border-slate-200 transition">${opt.key}</span>
+                                                <span class="text-sm">${opt.text}</span>
+                                            </div>
+                                            ${iconHtml}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+
+                            ${hasAnswered ? `
+                            <div class="mt-6 pt-6 border-t border-slate-100 space-y-4">
+                                ${isCorrect ? `
+                                    <div class="text-emerald-600 font-extrabold text-sm flex items-center space-x-2">
+                                        <i class="fa-solid fa-circle-check text-lg"></i>
+                                        <span>Úi, một sinh viên chất lừ!</span>
+                                    </div>
+                                ` : `
+                                    <div class="text-rose-600 font-extrabold text-sm flex items-center space-x-2">
+                                        <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                                        <span>Rất tiếc! Đáp án chưa chính xác.</span>
+                                    </div>
+                                `}
+
+                                <div class="p-4 bg-purple-50/80 border border-purple-200 rounded-2xl text-purple-900 text-xs leading-relaxed purple-glow">
+                                    <div class="font-bold text-purple-700 mb-1 flex items-center space-x-1.5">
+                                        <i class="fa-solid fa-lightbulb"></i>
+                                        <span>Giải thích tham khảo:</span>
+                                    </div>
+                                    <p>${currentQ.generalExplanation}</p>
+                                </div>
+
+                                <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+                                    <button onclick="app.toggleOptionExplanations()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center space-x-2">
+                                        <i class="fa-solid fa-list-ul"></i>
+                                        <span>${this.state.showOptionExplanations ? 'Ẩn Giải Thích Từng Ý' : 'Giải thích từng ý'}</span>
+                                    </button>
+
+                                    ${currentIdx < questions.length - 1 ? `
+                                        <button onclick="app.nextQuestion()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-200 transition flex items-center space-x-2">
+                                            <span>Câu Tiếp Theo</span>
+                                            <i class="fa-solid fa-arrow-right"></i>
+                                        </button>
+                                    ` : `
+                                        <button onclick="app.navigate('chapter_list')" class="px-5 py-2.5 bg-slate-800 text-white text-xs font-bold rounded-xl shadow-md transition">Hoàn Thành Bài Tập</button>
+                                    `}
+                                </div>
+
+                                ${this.state.showOptionExplanations ? `
+                                    <div class="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                                        <h4 class="font-bold text-slate-700 text-xs uppercase tracking-wider">Chi tiết từng đáp án:</h4>
+                                        ${currentQ.options.map(opt => `
+                                            <div class="text-xs border-b border-slate-200 pb-2 last:border-0 last:pb-0">
+                                                <strong class="${opt.correct ? 'text-emerald-600' : 'text-slate-700'}">Đáp án ${opt.key}:</strong>
+                                                <span class="text-slate-600 ml-1">${opt.exp || 'Chưa có giải thích chi tiết.'}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderAdmin() {
+                if (!this.isAdmin()) {
+                    return `
+                        <div class="bg-white rounded-3xl p-10 text-center border border-rose-200 max-w-md mx-auto">
+                            <i class="fa-solid fa-shield-xmark text-4xl text-rose-500 mb-3"></i>
+                            <h3 class="font-bold text-slate-800 text-lg">Truy Cấp Bị Từ Chối</h3>
+                            <p class="text-xs text-slate-500 mt-1">Chỉ tài khoản Admin hoặc Super Admin mới có quyền truy cập trang quản trị này.</p>
+                        </div>
+                    `;
+                }
+
+                const users = this.getUsers() || [];
+                const subjects = this.getSubjects() || [];
+                const questions = this.getQuestions() || [];
+                const payments = this.getPayments() || [];
+                const bankSettings = this.getBankSettings() || DEFAULT_BANK_SETTINGS;
+                const isSuper = this.isSuperAdmin();
+
+                const activeUsers = users.filter(u => this.isUserActive(u));
+                const pendingPayments = payments.filter(p => p.status === 'PENDING');
+
+                return `
+                    <div class="space-y-8">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <div>
+                                <h1 class="text-2xl font-black text-slate-900">Bảng Quản Trị Admin Panel (Cloud Real-time)</h1>
+                                <p class="text-xs text-slate-500">Quản lý nội dung học tập, phân quyền tài khoản & giám sát trực tuyến qua Firebase</p>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="app.showAddQuestionModal()" class="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-200 hover:bg-emerald-700 transition">
+                                    <i class="fa-solid fa-plus-circle mr-1"></i> + Thêm Câu Hỏi
+                                </button>
+                                <button onclick="app.showAddSubjectModal()" class="px-4 py-2 bg-slate-800 text-white text-xs font-bold rounded-xl shadow-md hover:bg-slate-900 transition">
+                                    <i class="fa-solid fa-plus mr-1"></i> Thêm Môn Học
+                                </button>
+                                <button onclick="app.showNotebookLMModal()" class="px-4 py-2 bg-purple-600 text-white text-xs font-bold rounded-xl shadow-md shadow-purple-200 hover:bg-purple-700 transition">
+                                    <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Import NotebookLM
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                                <div class="text-xs text-slate-500 font-bold uppercase">TỔNG SINH VIÊN</div>
+                                <div class="text-2xl font-black text-slate-800 mt-1">${users.length}</div>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                                <div class="text-xs text-emerald-600 font-bold uppercase flex items-center">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping mr-1"></span> ĐANG TRỰC TUYẾN
+                                </div>
+                                <div id="statActiveUsersCount" class="text-2xl font-black text-emerald-600 mt-1">${activeUsers.length}</div>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                                <div class="text-xs text-amber-600 font-bold uppercase">YÊU CẦU CHỜ DUYỆT</div>
+                                <div class="text-2xl font-black text-amber-600 mt-1">${pendingPayments.length}</div>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                                <div class="text-xs text-blue-600 font-bold uppercase">TỔNG CÂU HỎI</div>
+                                <div class="text-2xl font-black text-blue-600 mt-1">${questions.length}</div>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-2 sm:col-span-1">
+                                <div class="text-xs text-purple-600 font-bold uppercase">TỔNG DOANH THU</div>
+                                <div class="text-2xl font-black text-purple-600 mt-1">${payments.filter(p=>p.status==='SUCCESS').reduce((a, b) => a + (b.amount || 0), 0).toLocaleString('vi-VN')} VNĐ</div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-3xl p-6 border-2 border-amber-200 shadow-md">
+                            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
+                                <div>
+                                    <h3 class="font-extrabold text-slate-900 text-base flex items-center">
+                                        <i class="fa-solid fa-receipt text-amber-600 mr-2"></i>
+                                        Duyệt Yêu Cầu Chuyển Khoản Pro
+                                    </h3>
+                                    <p class="text-xs text-slate-500">Đối chiếu sao kê tài khoản ngân hàng và bấm duyệt để nâng cấp Pro cho sinh viên</p>
+                                </div>
+                                <span class="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full border border-amber-300">
+                                    ${pendingPayments.length} giao dịch chờ duyệt
+                                </span>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
+                                        <tr>
+                                            <th class="p-3">Email Sinh Viên</th>
+                                            <th class="p-3">Gói Đăng Ký</th>
+                                            <th class="p-3">Số Tiền</th>
+                                            <th class="p-3">Mã Nội Dung CK</th>
+                                            <th class="p-3">Thời Gian Gửi</th>
+                                            <th class="p-3 text-center">Trạng Thái</th>
+                                            <th class="p-3 text-right">Thao Tác Duyệt</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        ${payments.length === 0 ? `
+                                            <tr><td colspan="7" class="p-4 text-center text-slate-400">Chưa có lịch sử giao dịch nào.</td></tr>
+                                        ` : payments.map(p => `
+                                            <tr>
+                                                <td class="p-3 font-semibold text-slate-800">${p.userEmail}</td>
+                                                <td class="p-3 font-bold text-purple-700">${p.plan}</td>
+                                                <td class="p-3 font-bold text-emerald-700">${(p.amount || 0).toLocaleString('vi-VN')} VNĐ</td>
+                                                <td class="p-3 font-mono font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded inline-block my-1">${p.refCode || 'N/A'}</td>
+                                                <td class="p-3 text-slate-500">${new Date(p.date).toLocaleString('vi-VN')}</td>
+                                                <td class="p-3 text-center">
+                                                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold ${p.status === 'SUCCESS' ? 'bg-emerald-100 text-emerald-800' : p.status === 'PENDING' ? 'bg-amber-100 text-amber-800 animate-pulse' : 'bg-rose-100 text-rose-800'}">
+                                                        ${p.status === 'SUCCESS' ? 'ĐÃ DUYỆT' : p.status === 'PENDING' ? 'CHỜ DUYỆT' : 'ĐÃ TỪ CHỐI'}
+                                                    </span>
+                                                </td>
+                                                <td class="p-3 text-right space-x-1">
+                                                    ${p.status === 'PENDING' ? `
+                                                        <button onclick="app.adminApprovePayment('${p.id}')" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow-sm">
+                                                            Duyệt PRO
+                                                        </button>
+                                                        <button onclick="app.adminRejectPayment('${p.id}')" class="px-2.5 py-1 bg-slate-100 hover:bg-rose-100 text-rose-600 font-bold rounded-lg text-xs">
+                                                            Từ Chối
+                                                        </button>
+                                                    ` : '<span class="text-slate-400 italic text-[11px]">Hoàn tất</span>'}
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        ${isSuper ? `
+                        <div class="bg-white rounded-3xl p-6 border-2 border-emerald-200 shadow-md overflow-hidden relative">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 pb-4 border-b border-slate-100 gap-2">
+                                <div>
+                                    <h3 class="font-extrabold text-slate-900 text-base flex items-center">
+                                        <i class="fa-solid fa-users-viewfinder text-emerald-600 mr-2"></i>
+                                        Giám Sát Hoạt Động Đăng Nhập Người Dùng (Real-time Session Monitoring)
+                                    </h3>
+                                    <p class="text-xs text-slate-500">Chỉ Super Admin mới có quyền xem thông tin tài khoản Active/Inactive và lịch sử Heartbeat</p>
+                                </div>
+                                <span class="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full border border-emerald-300 flex items-center">
+                                    <span class="w-2 h-2 bg-emerald-500 rounded-full mr-1.5 animate-pulse"></span> Heartbeat Active
+                                </span>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
+                                        <tr>
+                                            <th class="p-3">Tài Khoản / Email</th>
+                                            <th class="p-3">Trạng Thái Đăng Nhập</th>
+                                            <th class="p-3">Vai Trò</th>
+                                            <th class="p-3">Gói Cước</th>
+                                            <th class="p-3">Đăng Nhập & Heartbeat</th>
+                                            <th class="p-3 text-right">Quyền Super Admin</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adminUserTableBody" class="divide-y divide-slate-100">
+                                        ${users.map(u => {
+                                            const active = this.isUserActive(u);
+                                            return `
+                                                <tr>
+                                                    <td class="p-3 font-semibold text-slate-800">
+                                                        <div class="flex items-center space-x-2">
+                                                            <span class="w-2.5 h-2.5 rounded-full ${active ? 'bg-emerald-500 animate-pulse shadow-sm shadow-emerald-400' : 'bg-slate-300'}"></span>
+                                                            <span>${u.email}</span>
+                                                        </div>
+                                                        <div class="text-[10px] text-slate-400 ml-4">Đăng ký: ${new Date(u.createdAt || Date.now()).toLocaleString('vi-VN')}</div>
+                                                    </td>
+                                                    <td class="p-3">
+                                                        <span class="px-2.5 py-0.5 rounded-full font-bold ${active ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-100 text-slate-500'}">
+                                                            <i class="fa-solid ${active ? 'fa-signal text-emerald-600' : 'fa-moon text-slate-400'} mr-1"></i>
+                                                            ${active ? 'Active (Trực tuyến)' : 'Inactive (Ngoại tuyến)'}
+                                                        </span>
+                                                    </td>
+                                                    <td class="p-3">
+                                                        <span class="px-2.5 py-0.5 rounded-full font-bold ${u.role === 'super_admin' ? 'bg-amber-100 text-amber-800 border border-amber-300' : u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}">
+                                                            ${u.role.toUpperCase()}
+                                                        </span>
+                                                    </td>
+                                                    <td class="p-3">
+                                                        <span class="px-2.5 py-0.5 rounded-full font-bold ${u.tier === 'pro' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">
+                                                            ${u.tier.toUpperCase()}
+                                                        </span>
+                                                    </td>
+                                                    <td class="p-3 text-slate-600 font-mono text-[11px]">
+                                                        <div><i class="fa-solid fa-clock mr-1 text-emerald-500"></i> ${u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString('vi-VN') : 'Mới đăng ký'}</div>
+                                                        <div class="text-[10px] text-slate-400">Tín hiệu: ${u.lastHeartbeatAt ? new Date(u.lastHeartbeatAt).toLocaleTimeString('vi-VN') : 'Không có'}</div>
+                                                    </td>
+                                                    <td class="p-3 text-right space-x-2">
+                                                        ${u.role !== 'super_admin' ? `
+                                                            <button onclick="app.adminChangeUserRole('${u.id}')" class="px-2.5 py-1 bg-purple-100 text-purple-700 font-bold rounded-lg hover:bg-purple-200">
+                                                                ${u.role === 'admin' ? 'Hạ xuống Student' : 'Thăng Admin'}
+                                                            </button>
+                                                            <button onclick="app.deleteUser('${u.id}')" class="p-1 text-rose-500 hover:bg-rose-50 rounded">
+                                                                <i class="fa-solid fa-trash"></i>
+                                                            </button>
+                                                        ` : '<span class="text-slate-400 italic text-[10px]">Được bảo vệ</span>'}
+                                                    </td>
+                                                </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+                            <div class="mb-4 pb-3 border-b border-slate-100">
+                                <h3 class="font-extrabold text-slate-900 text-base flex items-center">
+                                    <i class="fa-solid fa-qrcode text-purple-600 mr-2"></i>
+                                    Cấu Hình VietQR & Ngân Hàng Thanh Toán Pro (Cloud Sync)
+                                </h3>
+                                <p class="text-xs text-slate-500">Quản lý thông tin ngân hàng và link QR code đồng bộ trực tuyến</p>
+                            </div>
+
+                            <form onsubmit="event.preventDefault(); app.saveBankSettingsFromForm();" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="md:col-span-2 space-y-4 text-xs">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block font-bold text-slate-700 mb-1">Mã Ngân Hàng (Bank ID VietQR):</label>
+                                            <input type="text" id="cfgBankId" value="${bankSettings.bankId || 'MB'}" required placeholder="MB, VCB, TCB, VPB..." class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 font-mono">
+                                        </div>
+                                        <div>
+                                            <label class="block font-bold text-slate-700 mb-1">Tên Ngân Hàng Hiển Thị:</label>
+                                            <input type="text" id="cfgBankName" value="${bankSettings.bankName || ''}" required placeholder="MBBank (Ngân hàng Quân Đội)" class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500">
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block font-bold text-slate-700 mb-1">Số Tài Khoản Nhận Tiền:</label>
+                                            <input type="text" id="cfgAccountNo" value="${bankSettings.accountNo || ''}" required placeholder="0399888999" class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 font-mono font-bold">
+                                        </div>
+                                        <div>
+                                            <label class="block font-bold text-slate-700 mb-1">Tên Chủ Tài Khoản (In hoa):</label>
+                                            <input type="text" id="cfgAccountName" value="${bankSettings.accountName || ''}" required placeholder="QUIZ Y KHOA MEDICAL ACADEMY" class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 font-bold uppercase">
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block font-bold text-slate-700 mb-1">Link Ảnh QR Tùy Chỉnh (Nếu muốn dùng ảnh riêng):</label>
+                                        <input type="text" id="cfgCustomQrUrl" value="${bankSettings.customQrUrl || ''}" placeholder="https://example.com/my-qr.png" class="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500">
+                                    </div>
+
+                                    <button type="submit" class="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-md shadow-purple-200 transition flex items-center space-x-2">
+                                        <i class="fa-solid fa-floppy-disk"></i>
+                                        <span>Lưu & Đồng Bộ Cloud VietQR</span>
+                                    </button>
+                                </div>
+
+                                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center flex flex-col items-center justify-center space-y-2">
+                                    <span class="text-xs font-bold text-slate-600">XEM TRƯỚC MÃ QR HIỆN TẠI</span>
+                                    <img src="${bankSettings.customQrUrl || `https://img.vietqr.io/image/${bankSettings.bankId}-${bankSettings.accountNo}-compact2.png?amount=9000&addInfo=QUIZYKHOA%20DEMO&accountName=${encodeURIComponent(bankSettings.accountName)}`}" alt="VietQR Live Preview" class="w-40 h-40 border border-slate-300 rounded-xl bg-white p-1 shadow-sm">
+                                    <div class="text-[11px] text-slate-500 font-mono">
+                                        <div>${bankSettings.bankName}</div>
+                                        <div class="font-bold text-slate-800">${bankSettings.accountNo}</div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+                            <h3 class="font-bold text-slate-800 text-base mb-4">Danh Mục Môn Học & Quản Lý Cloud</h3>
+                            <div class="space-y-4">
+                                ${subjects.map(s => `
+                                    <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                                        <div class="flex justify-between items-center">
+                                            <div>
+                                                <h4 class="font-bold text-slate-800 text-sm">${s.name} (${s.code})</h4>
+                                                <p class="text-xs text-slate-500">${s.chapters ? s.chapters.length : 0} chương - ${s.description}</p>
+                                            </div>
+                                            <button onclick="app.deleteSubject('${s.id}')" class="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold rounded-xl transition flex items-center space-x-1">
+                                                <i class="fa-solid fa-trash"></i>
+                                                <span>Xóa Môn Học</span>
+                                            </button>
+                                        </div>
+
+                                        ${s.chapters && s.chapters.length > 0 ? `
+                                            <div class="pl-4 border-l-2 border-slate-200 space-y-2 mt-2">
+                                                ${s.chapters.map(ch => `
+                                                    <div class="flex justify-between items-center bg-white p-2.5 rounded-xl border border-slate-200/70 text-xs">
+                                                        <span class="font-medium text-slate-700">${ch.name} (${ch.count || 0} câu)</span>
+                                                        <button onclick="app.deleteChapter('${s.id}', '${ch.id}')" class="text-rose-500 hover:text-rose-700 p-1 font-bold">
+                                                            <i class="fa-solid fa-trash mr-1"></i> Xóa Chương
+                                                        </button>
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            saveBankSettingsFromForm() {
+                const settings = {
+                    bankId: document.getElementById('cfgBankId').value.trim(),
+                    bankName: document.getElementById('cfgBankName').value.trim(),
+                    accountNo: document.getElementById('cfgAccountNo').value.trim(),
+                    accountName: document.getElementById('cfgAccountName').value.trim().toUpperCase(),
+                    customQrUrl: document.getElementById('cfgCustomQrUrl').value.trim()
+                };
+                this.saveBankSettings(settings);
+                this.addNotification('Cấu hình VietQR ngân hàng vừa được cập nhật trên Cloud.');
+                this.addAuditLog('Cập nhật cấu hình VietQR ngân hàng', settings.accountNo);
+                this.toast('Đã lưu và đồng bộ cấu hình ngân hàng lên Cloud!', 'success');
+                this.render();
+            }
+
+            render() {
+                this.renderNavUserActions();
+                const mainEl = document.getElementById('mainContent');
+
+                switch (this.state.currentView) {
+                    case 'home':
+                        mainEl.innerHTML = this.renderHome();
+                        break;
+                    case 'chapter_list':
+                        mainEl.innerHTML = this.renderChapterList();
+                        break;
+                    case 'quiz':
+                        mainEl.innerHTML = this.renderQuiz();
+                        break;
+                    case 'search':
+                        mainEl.innerHTML = this.renderSearch();
+                        break;
+                    case 'profile':
+                        mainEl.innerHTML = this.renderProfile();
+                        break;
+                    case 'admin':
+                        mainEl.innerHTML = this.renderAdmin();
+                        break;
+                    default:
+                        mainEl.innerHTML = this.renderHome();
+                }
+            }
+        }
+
+        let app;
+        window.addEventListener('DOMContentLoaded', () => {
+            app = new MedicalQuizApp();
+            app.render();
+        });
+    </script>
+</body>
+</html>
